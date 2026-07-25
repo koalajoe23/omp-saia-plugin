@@ -30,7 +30,16 @@
     "type": "git",
     "url": "https://codeberg.org/graphwiz-ai/pi-saia-plugin.git"
   },
-  "keywords": ["pi", "coding-agent", "saia", "gwdg", "ai", "plugin", "models", "chat-ai"],
+  "keywords": [
+    "pi",
+    "coding-agent",
+    "saia",
+    "gwdg",
+    "ai",
+    "plugin",
+    "models",
+    "chat-ai"
+  ],
   "license": "MIT",
   "author": "graphwiz-ai",
   "bugs": {
@@ -41,6 +50,6 @@
     "node": ">=20.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.19.43"
   }
 }

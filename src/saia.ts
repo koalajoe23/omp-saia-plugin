@@ -8,9 +8,15 @@ import fs from "node:fs/promises"
 
 import * as memory from "./saia-memory.js"
 
+// Configuration paths
 const CONFIG = path.join(os.homedir(), ".config", "pi", "pi.json")
-const PLUGIN_CONFIG = path.join(os.homedir(), ".config", "pi", "plugins", "saia", "pi-saia.json")
-const ENDPOINT = "https://chat-ai.academiccloud.de/v1/models"
+const PLUGIN_DIR = path.join(os.homedir(), ".config", "pi", "plugins", "saia")
+const PLUGIN_CONFIG = path.join(PLUGIN_DIR, "pi-saia.json")
+const MODEL_CACHE = path.join(PLUGIN_DIR, "models.json")
+
+// API configuration
+const DEFAULT_ENDPOINT = "https://chat-ai.academiccloud.de/v1/models"
+const SAIA_API_KEY = process.env.SAIA_API_KEY || process.env.PI_SAIA_API_KEY
 
 // Default permissions for SAIA plugin
 export const PERMISSIONS: Record<string, "allow" | "ask" | "deny"> = {
@@ -46,22 +52,60 @@ export default async (pi: any) => {
     console.error("[SAIA Plugin] Initialization error:", err)
   })
 
-  // Register refresh command
+  // Register commands
   if (pi.registerCommand) {
+    // Refresh models
     pi.registerCommand({
       name: "refresh-saia-models",
       description: "Manually refresh SAIA model list from API",
       async handler() {
-        await refreshSaiaConfig(pi)
+        await refreshSaiaConfig(pi, true)
         return "SAIA models refreshed successfully"
+      },
+    })
+
+    // List models
+    pi.registerCommand({
+      name: "list-saia-models",
+      description: "List all available SAIA models",
+      async handler() {
+        const list = await listModels()
+        return list
+      },
+    })
+
+    // Switch profile
+    pi.registerCommand({
+      name: "saia-set-profile",
+      description: "Switch SAIA profile (production, development, budget)",
+      args: [{ name: "profile", type: "string", required: true }],
+      async handler(args: any) {
+        const profile = args.profile
+        if (!["production", "development", "dev", "budget"].includes(profile)) {
+          return `Invalid profile: ${profile}. Valid: production, development, dev, budget`
+        }
+        process.env.SAIA_PROFILE = profile
+        await refreshSaiaConfig(pi, true)
+        await memory.setPreferences({ defaultProfile: profile })
+        return `Switched to ${profile} profile and refreshed models`
+      },
+    })
+
+    // Get usage stats
+    pi.registerCommand({
+      name: "saia-usage",
+      description: "Show SAIA usage statistics",
+      async handler() {
+        const stats = await memory.getUsageStats()
+        return JSON.stringify(stats, null, 2)
       },
     })
   }
 
   // Register skills if available
   if (pi.registerSkill) {
-    const skillsDir = path.join(pluginDir, "..", "..", ".opencode", "skills")
-    // Skills will be loaded from .opencode/skills/ directory
+    const skillsDir = path.join(pluginDir, ".opencode", "skills")
+    // Skills will be loaded from skills/ directory
   }
 
   console.log(`[SAIA Plugin] Loaded successfully`)
@@ -77,16 +121,72 @@ export default async (pi: any) => {
 }
 
 /**
+ * List all available models with metadata
+ */
+async function listModels(): Promise<string> {
+  try {
+    const { data } = await memory.fetchWithCache(fetchModels)
+    const modelIds = data.data.map((m) => m.id).sort()
+    
+    const filteredModels = modelIds.filter((id) => includeInProfile(id, process.env.SAIA_PROFILE || "production"))
+    
+    if (filteredModels.length === 0) return "No models available"
+    
+    let output = `**Available SAIA Models (${filteredModels.length} total):**\n\n`
+    
+    // Group by category
+    const categories: Record<string, string[]> = {}
+    for (const id of filteredModels) {
+      const cat = categorizeModel(id)
+      if (!categories[cat]) categories[cat] = []
+      categories[cat].push(id)
+    }
+    
+    for (const [category, models] of Object.entries(categories)) {
+      output += `### ${category.charAt(0).toUpperCase() + category.slice(1)}\n`
+      for (const model of models) {
+        const metadata = getModelMetadata(model)
+        const reason = metadata.can_reason ? " [reasoning]" : ""
+        const attach = metadata.attachment ? " [vision]" : ""
+        output += `- \`${model}\`${reason}${attach}\n`
+      }
+      output += "\n"
+    }
+    
+    output += "**Aliases:**\n"
+    const aliases = [
+      "best-for-coding",
+      "best-for-reasoning",
+      "best-for-vision",
+      "best-for-agentic",
+      "best-quality",
+      "fastest",
+      "budget",
+      "best-german",
+    ]
+    for (const alias of aliases) {
+      output += `- \`${alias}\`\n`
+    }
+    
+    return output
+  } catch (err) {
+    return `Error listing models: ${err}`
+  }
+}
+
+/**
  * Fetch models from SAIA API
  */
-async function fetchModels(): Promise<{ data: Array<{ id: string }> }> {
-  const apiKey = process.env.SAIA_API_KEY
+async function fetchModels(endpoint?: string): Promise<{ data: Array<{ id: string }> }> {
+  const apiKey = process.env.SAIA_API_KEY || SAIA_API_KEY
   if (!apiKey) {
     throw new Error("SAIA_API_KEY environment variable not set")
   }
 
+  const url = endpoint || DEFAULT_ENDPOINT
+
   const startTime = Date.now()
-  const res = await fetch(ENDPOINT, {
+  const res = await fetch(url, {
     headers: { Authorization: `Bearer ${apiKey}` },
     signal: AbortSignal.timeout(30000), // 30 seconds timeout
   })
@@ -432,13 +532,16 @@ function getProfileDefaultModel(profile: string): string {
 /**
  * Refresh SAIA configuration
  */
-async function refreshSaiaConfig(pi: any) {
+async function refreshSaiaConfig(pi: any, forceRefresh = false) {
   const profile = process.env.SAIA_PROFILE || "production"
   const startTime = Date.now()
 
+  // Check for LiteLLM proxy
+  const baseUrl = process.env.LITELLM_PROXY_URL || DEFAULT_ENDPOINT
+
   let result
   try {
-    result = await memory.fetchWithCache(fetchModels)
+    result = await memory.fetchWithCache(fetchModels, forceRefresh)
     await memory.updateMetrics("refresh", true, Date.now() - startTime)
   } catch (err) {
     await memory.updateMetrics("refresh", false, Date.now() - startTime)

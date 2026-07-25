@@ -1,0 +1,131 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run tsc
+
+      - name: Get version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Update package.json version (if needed)
+        run: |
+          current_version=$(node -p "require('./package.json').version")
+          if [ "$current_version" != "${{ steps.version.outputs.version }}" ]; then
+            node -e "const p = require('./package.json'); p.version='${{ steps.version.outputs.version }}'; require('fs').writeFileSync('./package.json', JSON.stringify(p, null, 2) + '\\n');"
+            git config user.name "GitHub Actions"
+            git config user.email "actions@github.com"
+            git add package.json
+            git commit -m "Bump version to v${{ steps.version.outputs.version }}"
+            git push
+          fi
+
+      - name: Update CHANGELOG
+        run: |
+          # Generate changelog entry from commits since last tag
+          prev_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$prev_tag" ]; then
+            commits=$(git log --pretty=format:"* %s (%h)" $prev_tag..HEAD)
+          else
+            commits=$(git log --pretty=format:"* %s (%h)")
+          fi
+          
+          cat >> CHANGELOG.md << EOF
+
+
+## [${{ steps.version.outputs.version }}] - $(date +%Y-%m-%d)
+
+### Added
+EOF
+          
+          echo "$commits" | while read -r line; do
+            echo "- $line" >> CHANGELOG.md
+          done
+          
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add CHANGELOG.md
+          git commit -m "Update CHANGELOG for v${{ steps.version.outputs.version }}"
+          git push
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: pi-saia-plugin v${{ steps.version.outputs.version }}
+          body_file: CHANGELOG.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  npm:
+    name: Publish to npm
+    needs: release
+    runs-on: ubuntu-latest
+    if: false  # Disabled for now - might publish to npm later
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  mirror-to-codeberg:
+    name: Mirror to Codeberg
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to Codeberg
+        run: |
+          git remote add codeberg git@codeberg.org:tobias-weiss-ai-xr/pi-saia-plugin.git
+          git push codeberg master
+          git push codeberg v${{ steps.version.outputs.version }}
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.CODEBERG_SSH_KEY }}

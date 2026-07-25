@@ -3,6 +3,7 @@
 
 import path from "node:path"
 import os from "node:os"
+import { platform } from "node:os"
 
 const CACHE_DIR = path.join(os.homedir(), ".cache", "saia")
 const CACHE_FILE = path.join(CACHE_DIR, "models.json")
@@ -37,11 +38,11 @@ export async function fetchWithCache<T>(
     try {
       const fs = await import("node:fs/promises")
       const cachedRaw = await fs.readFile(CACHE_FILE, "utf8")
-      const cached = JSON.parse(cachedRaw)
+      const cached = JSON.parse(cachedRaw) as { data: T; timestamp: number }
       const age = Date.now() - cached.timestamp
       if (age < CACHE_TTL_MS) {
         console.log(`[SAIA Memory] Cache hit (age: ${Math.round(age / 1000 / 60)}m)`)
-        return { data: cached.data as T, cached: true }
+        return { data: cached.data, cached: true }
       }
     } catch {
       // Cache miss or invalid
@@ -60,8 +61,8 @@ export async function fetchWithCache<T>(
     await fs.writeFile(tmp, JSON.stringify(cacheEntry, null, 2))
     await fs.rename(tmp, CACHE_FILE)
     console.log("[SAIA Memory] Cache updated")
-  } catch (err) {
-    console.error(`[SAIA Memory] Failed to write cache: ${err}`)
+  } catch (err: unknown) {
+    console.error(`[SAIA Memory] Failed to write cache: ${err instanceof Error ? err.message : String(err)}`)
   }
 
   return { data, cached: false }
@@ -97,8 +98,8 @@ export async function logUsage(modelId: string, taskType?: string, latencyMs?: n
       latencyMs,
     }
     await fs.appendFile(USAGE_FILE, JSON.stringify(entry) + "\n")
-  } catch (err) {
-    console.error(`[SAIA Memory] Failed to log usage: ${err}`)
+  } catch (err: unknown) {
+    console.error(`[SAIA Memory] Failed to log usage: ${err instanceof Error ? err.message : String(err)}`)
   }
 }
 
@@ -115,13 +116,13 @@ export async function updateMetrics(
   try {
     const fs = await import("node:fs/promises")
     const metricsRaw = await fs.readFile(METRICS_FILE, "utf8").catch(() => "{}")
-    const metrics = JSON.parse(metricsRaw)
+    const metrics: Record<string, any> = JSON.parse(metricsRaw)
 
     if (!metrics[identifier]) {
       metrics[identifier] = { count: 0, success: 0, errors: 0, totalLatency: 0, lastUsed: null }
     }
 
-    const entityMetrics = metrics[identifier]
+    const entityMetrics = metrics[identifier] as Record<string, any>
     entityMetrics.count++
     entityMetrics[success ? "success" : "errors"]++
     if (latencyMs !== undefined) {
@@ -132,8 +133,8 @@ export async function updateMetrics(
     const tmp = METRICS_FILE + ".tmp"
     await fs.writeFile(tmp, JSON.stringify(metrics, null, 2))
     await fs.rename(tmp, METRICS_FILE)
-  } catch (err) {
-    console.error(`[SAIA Memory] Failed to update metrics: ${err}`)
+  } catch (err: unknown) {
+    console.error(`[SAIA Memory] Failed to update metrics: ${err instanceof Error ? err.message : String(err)}`)
   }
 }
 
@@ -391,8 +392,9 @@ export async function getMetricsSummary(): Promise<Record<string, any>> {
       }
     }
 
-    summary.successRate = summary.totalRequests > 0 
-      ? (Object.values(summary.byEndpoint).reduce((sum, e) => sum + (e.successRate || 0), 0) / Object.keys(summary.byEndpoint).length)
+    const successRates = Object.values(summary.byEndpoint).map((e: any) => e.successRate || 0)
+    summary.successRate = summary.totalRequests > 0 && successRates.length > 0
+      ? (successRates.reduce((sum, rate) => sum + rate, 0) / successRates.length)
       : 0
 
     return summary
