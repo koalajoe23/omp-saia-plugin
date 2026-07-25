@@ -1,0 +1,26 @@
+{
+  "$schema": "https://pi.code/config.json",
+  "plugin": ["saia"],
+  "model": "saia/glm-4.7",
+  "permission": {
+    "bash": "allow",
+    "edit": "allow",
+    "read": "allow",
+    "grep": "allow",
+    "glob": "allow",
+    "list": "allow",
+    "lsp": "allow",
+    "skill": "allow",
+    "task": "allow",
+    "todowrite": "allow",
+    "todoread": "allow",
+    "webfetch": "allow",
+    "websearch": "allow",
+    "codesearch": "allow",
+    "question": "allow",
+    "mymcp_*": "ask",
+    "external_directory": "ask",
+    "doom_loop": "ask"
+  },
+  "formatter": {}
+}

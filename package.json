@@ -1,0 +1,46 @@
+{
+  "name": "pi-saia-plugin",
+  "version": "0.1.0",
+  "description": "SAIA (GWDG Chat AI) plugin for pi coding agent — model config generator, profiles, caching, and skills",
+  "type": "module",
+  "main": "./src/saia.ts",
+  "bin": {
+    "generate-saia-config": "./src/generate-saia-config.sh",
+    "copy-saia-config": "./src/copy-saia-config.sh",
+    "validate-saia-config": "./src/validate-config.sh",
+    "setup-saia-wizard": "./src/setup-wizard.sh"
+  },
+  "files": [
+    "src/",
+    "schema/",
+    ".opencode/",
+    "install.sh",
+    "install.ps1",
+    "LICENSE",
+    "README.md",
+    "FAQ.md"
+  ],
+  "scripts": {
+    "prepare-release": "bash prepare-release.sh",
+    "validate": "bash src/validate-config.sh pi.json",
+    "generate": "bash src/generate-saia-config.sh",
+    "tsc": "tsc --noEmit --skipLibCheck"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://codeberg.org/graphwiz-ai/pi-saia-plugin.git"
+  },
+  "keywords": ["pi", "coding-agent", "saia", "gwdg", "ai", "plugin", "models", "chat-ai"],
+  "license": "MIT",
+  "author": "graphwiz-ai",
+  "bugs": {
+    "url": "https://codeberg.org/graphwiz-ai/pi-saia-plugin/issues"
+  },
+  "homepage": "https://codeberg.org/graphwiz-ai/pi-saia-plugin",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  }
+}
