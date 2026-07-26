@@ -24,7 +24,16 @@
     "prepare-release": "bash prepare-release.sh",
     "validate": "bash src/validate-config.sh pi.json",
     "generate": "bash src/generate-saia-config.sh",
-    "tsc": "tsc --noEmit --skipLibCheck"
+    "tsc": "tsc --noEmit --skipLibCheck",
+    "sandbox": "bash sandbox/run.sh",
+    "sandbox:dev": "bash sandbox/dev.sh",
+    "sandbox:test": "bash sandbox/test.sh",
+    "docker:build": "docker build -t ghcr.io/graphwiz-ai/pi-saia-plugin:latest .",
+    "docker:build-dev": "docker build -t ghcr.io/graphwiz-ai/pi-saia-plugin:latest-dev --target builder .",
+    "docker:push": "docker push ghcr.io/graphwiz-ai/pi-saia-plugin:latest",
+    "docker:push-dev": "docker push ghcr.io/graphwiz-ai/pi-saia-plugin:latest-dev",
+    "docker:pull": "docker pull ghcr.io/graphwiz-ai/pi-saia-plugin:latest",
+    "docker:run": "docker run -it --rm -e SAIA_API_KEY=\$SAIA_API_KEY ghcr.io/graphwiz-ai/pi-saia-plugin:latest sh"
   },
   "repository": {
     "type": "git",

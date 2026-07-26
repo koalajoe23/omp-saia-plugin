@@ -294,6 +294,48 @@ This plugin is based on the [opencode-saia-plugin](https://codeberg.org/graphwiz
 | Skills | ✓ | ✓ |
 | Memory layer | ✓ | ✓ |
 
+## Docker Sandbox
+
+For testing the plugin in an isolated environment, we provide Docker images on **GitHub Container Registry (GHCR)**.
+
+### Quick Start
+
+Start a pre-configured sandbox:
+
+```bash
+./sandbox/run.sh
+```
+
+Or use Docker directly:
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/graphwiz-ai/pi-saia-plugin:latest
+
+# Run with your API key
+docker run -it --rm \
+  -e SAIA_API_KEY="your_api_key" \
+  ghcr.io/graphwiz-ai/pi-saia-plugin:latest sh
+```
+
+### Available Images
+
+| Image | Description | Purpose |
+|-------|-------------|---------|
+| `ghcr.io/graphwiz-ai/pi-saia-plugin:latest` | Production image | Runtime use |
+| `ghcr.io/graphwiz-ai/pi-saia-plugin:latest-dev` | Development image | Plugin development |
+| `ghcr.io/graphwiz-ai/pi-saia-plugin:vX.Y.Z` | Versioned image | Specific release |
+
+### Sandbox Scripts
+
+| Script | Description |
+|--------|-------------|
+| `sandbox/run.sh` | Start interactive sandbox |
+| `sandbox/test.sh` | Run test suite in sandbox |
+| `sandbox/dev.sh` | Start development environment |
+
+See [sandbox/README.md](sandbox/README.md) for detailed usage.
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.

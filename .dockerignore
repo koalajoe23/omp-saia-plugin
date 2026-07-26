@@ -1,27 +1,45 @@
 # Dependencies
-node_modules
+node_modules/
 
-# Git
-.git
-.gitignore
+# Logs and caches
+*.log
+npm-debug.log*
+.yarn/integrity
+.yarn/cache
+.pnp
+.pnp.js
 
-# Documentation
-*.md
-!
-# IDE
-.idea
-.vscode
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
 
-# OS
+# OS files
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Git
+.git/
+.gitignore
+.gitmodules
+
+# Test outputs
+coverage/
+.nyc_output/
+
+# Lazyish generated files
+pi-saia-*.json
 
 # Cache
-.cache
-
-# Local config
-.env
-.env.*
+.cache/
