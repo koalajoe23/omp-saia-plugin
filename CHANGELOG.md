@@ -25,6 +25,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.0] - 2025-07-27
+
+### Added
+- **Pi package format**: Now installable via `pi install` (following the pi-memory pattern — see [agent-memory-research](https://github.com/tobias-weiss-ai-xr/agent-memory-research) survey [[arXiv 2512.13564](https://arxiv.org/abs/2512.13564)] for the research foundation behind our memory architecture)
+- **Provider auto-registration**: Extension registers SAIA provider with 6 models via `pi.registerProvider()`
+- **Usage skill**: `/skill:saia-models` documents available models and usage
+- **Clean `package.json` manifest**: `pi` key with `extensions` and `skills` paths
+
+### Changed
+- **Architecture**: From shell-script config generator → pi package with TypeScript extension
+- **README**: Updated to describe pi package installation, usage, and structure
+- API key resolution now uses pi's built-in auth stack (auth.json / env vars / /login) instead of shell scripts
+
+### Removed
+- Shell scripts (`src/*.sh`) — superseded by pi package auto-registration
+- Docker setup — no longer needed; pi packages are self-contained
+- Sandbox, showcase, Makefile — legacy from old approach
+
+---
+
 ## [0.1.0] - 2025-07-25
 
 ### Added
