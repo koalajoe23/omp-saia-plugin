@@ -98,26 +98,8 @@ export default async (pi: any) => {
     })
   }
 
-  // Register skills if available
-  if (pi.registerSkill) {
-    const skillsDir = path.join(pluginDir, ".opencode", "skills")
-    const fs = await import("node:fs/promises")
-    try {
-      const skillFiles = await fs.readdir(skillsDir)
-      for (const file of skillFiles) {
-        if (file.endsWith(".md")) {
-          try {
-            await pi.registerSkill(path.join(skillsDir, file))
-            console.log(`[SAIA] Registered skill: ${file}`)
-          } catch (skillErr) {
-            console.error(`[SAIA] Failed to register skill ${file}:`, skillErr)
-          }
-        }
-      }
-    } catch {
-      console.log("[SAIA] No skills directory found at", skillsDir)
-    }
-  }
+  // Skills are loaded automatically by pi from ./skills/ (declared in package.json)
+  // Legacy .opencode/skills/ files are not registered here; registerSkill is not part of ExtensionAPI
 
   console.log(`[SAIA Plugin] Loaded successfully`)
 
@@ -547,12 +529,12 @@ async function refreshSaiaConfig(pi: any, forceRefresh = false) {
   const profile = process.env.SAIA_PROFILE || "production"
   const startTime = Date.now()
 
-  // Check for LiteLLM proxy
-  const baseUrl = process.env.LITELLM_PROXY_URL || DEFAULT_ENDPOINT
+  // Check for LiteLLM proxy — pass custom endpoint to fetchModels if set
+  const apiEndpoint = process.env.LITELLM_PROXY_URL || undefined
 
   let result
   try {
-    result = await memory.fetchWithCache(fetchModels, forceRefresh)
+    result = await memory.fetchWithCache(() => fetchModels(apiEndpoint), forceRefresh)
     await memory.updateMetrics("refresh", true, Date.now() - startTime)
   } catch (err) {
     await memory.updateMetrics("refresh", false, Date.now() - startTime)
