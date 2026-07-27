@@ -55,49 +55,45 @@ export default async (pi: any) => {
   // Register commands
   if (pi.registerCommand) {
     // Refresh models
-    pi.registerCommand({
-      name: "refresh-saia-models",
+    pi.registerCommand("refresh-saia-models", {
       description: "Manually refresh SAIA model list from API",
-      async handler() {
+      handler: async () => {
         await refreshSaiaConfig(pi, true)
-        return "SAIA models refreshed successfully"
+        console.log("SAIA models refreshed successfully")
       },
     })
 
     // List models
-    pi.registerCommand({
-      name: "list-saia-models",
+    pi.registerCommand("list-saia-models", {
       description: "List all available SAIA models",
-      async handler() {
+      handler: async () => {
         const list = await listModels()
-        return list
+        console.log(list)
       },
     })
 
     // Switch profile
-    pi.registerCommand({
-      name: "saia-set-profile",
+    pi.registerCommand("saia-set-profile", {
       description: "Switch SAIA profile (production, development, budget)",
-      args: [{ name: "profile", type: "string", required: true }],
-      async handler(args: any) {
-        const profile = args.profile
+      handler: async (args: string) => {
+        const profile = args.trim()
         if (!["production", "development", "dev", "budget"].includes(profile)) {
-          return `Invalid profile: ${profile}. Valid: production, development, dev, budget`
+          console.log(`Invalid profile: ${profile}. Valid: production, development, dev, budget`)
+          return
         }
         process.env.SAIA_PROFILE = profile
         await refreshSaiaConfig(pi, true)
         await memory.setPreferences({ defaultProfile: profile })
-        return `Switched to ${profile} profile and refreshed models`
+        console.log(`Switched to ${profile} profile and refreshed models`)
       },
     })
 
     // Get usage stats
-    pi.registerCommand({
-      name: "saia-usage",
+    pi.registerCommand("saia-usage", {
       description: "Show SAIA usage statistics",
-      async handler() {
+      handler: async () => {
         const stats = await memory.getUsageStats()
-        return JSON.stringify(stats, null, 2)
+        console.log(JSON.stringify(stats, null, 2))
       },
     })
   }

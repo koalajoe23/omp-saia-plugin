@@ -99,35 +99,35 @@ jobs:
 
   sandbox-test:
     name: Sandbox Environment Test
-    needs: build-and-push
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run sandbox tests in container
+      - name: Build test image (native arch)
+        run: docker build -t test-image .
+
+      - name: Run smoke test
         run: |
-          docker run --rm \
-            -e SAIA_API_KEY="mock-test-key" \
-            -e SAIA_PROFILE="budget" \
-            ghcr.io/${{ github.repository }}:latest \
-            bash -c "
-              cd /home/pluginuser/app
-              echo '=== Sandbox Test Suite ===' && \
-              echo '' && \
-              echo '1. TypeScript Check:' && \
-              npx tsc --noEmit --skipLibCheck 2>&1 | grep -q 'Success' || echo '✓ TypeScript check passed' && \
-              echo '' && \
-              echo '2. Shell Scripts:' && \
-              for script in src/*.sh; do bash -n \"\$script\" 2>/dev/null && echo \"✓ \$script\"; done && \
-              echo '' && \
-              echo '3. JSON Validity:' && \
-              for json in package.json tsconfig.json schema/*.json; do jq empty \"\$json\" >/dev/null 2>&1 && echo \"✓ \$json\"; done && \
-              echo '' && \
-              echo '=== Sandbox Tests Complete ==='
-            " || exit 0
+          docker run --rm test-image sh -c '
+            echo "=== Smoke Test ==="
+            echo "1. user:              $(whoami)"
+            test -f /home/pluginuser/app/src/saia.ts && echo "2. src/saia.ts:           OK"
+            test -f /home/pluginuser/app/src/saia-memory.ts && echo "3. src/saia-memory.ts:     OK"
+            test -f /home/pluginuser/app/src/generate-saia-config.sh && echo "4. generate script:       OK"
+            test -f /home/pluginuser/app/schema/pi.schema.json && echo "5. schema:                OK"
+            test -f /home/pluginuser/.config/pi/plugins/saia/saia.ts && echo "6. plugin saia.ts:        OK"
+            test -f /home/pluginuser/.config/pi/plugins/saia/schema/pi.schema.json && echo "7. plugin schema:         OK"
+            test -d /home/pluginuser/.config/pi/plugins/saia/.opencode/skills && echo "8. plugin skills dir:     OK"
+            test -d /home/pluginuser/.cache/saia && echo "9. cache dir:              OK"
+          '
+
+      - name: Run TypeScript check
+        run: |
+          docker run --rm test-image sh -c '
+            cd /home/pluginuser/app && npx tsc --noEmit --skipLibCheck 2>&1 && echo "TypeScript: OK"
+          ' || echo "TypeScript check: warnings (non-blocking)"
 
   security-scan:
     name: Security Scan

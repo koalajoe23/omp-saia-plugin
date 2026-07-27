@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **src/generate-saia-config.sh**: Heredoc with quoted `'HEADER'` delimiter prevented command substitution — `"model"` field contained literal `$(get_profile_default_model ...)` instead of the resolved model name
+- **Dockerfile**: Fixed UID 1000 conflict with `node` user; fixed `CMD` format (JSON args); removed `ENV SAIA_API_KEY` (security); fixed `.opencode/skills/` not being copied (dotfile glob issue)
+- **sandbox/run.sh**: Fixed invalid bash variable assignment containing Turkish/Azerbaijani characters (`üzrə`)
+- **src/saia-memory.ts**: Fixed `MODELS_CACHE_FILE` used before its lexical declaration (TDZ risk)
+- **test/test.sh**: Removed YAML files from JSON validation test (always failed)
+- **src/setup-wizard.sh**: Fixed glob expansion with `nullglob` to prevent `cp` errors
+- **CI workflow**: Tests now build and use local image instead of pulling from GHCR
+- **src/saia.ts**: Fixed `registerCommand` call signatures to match pi's `ExtensionAPI`; skills from `.opencode/skills/` are now actually registered
+- **TypeScript**: `extensions/index.ts` now included in type-checking; added missing `cost` field and `ProviderModelConfig` annotation
+- **GHCR org**: All image references updated from `graphwiz-ai` to `tobias-weiss-ai-xr`
+
 ### Added
 - Initial repository structure
 - TypeScript plugin for pi coding agent
