@@ -1,4 +1,6 @@
 # pi-saia-plugin
+> **⚠️ Migrated from Codeberg → GitHub**: This repository has moved permanently to [GitHub](https://github.com/tobias-weiss-ai-xr/pi-saia-plugin). The Codeberg mirror is deprecated.
+
 
 > SAIA (Academic Cloud Hessen) provider for the [pi coding agent](https://pi.dev)
 
