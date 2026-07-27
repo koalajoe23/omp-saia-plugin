@@ -5,7 +5,7 @@ set -e
 # Validates, generates, and packages the plugin for release
 
 VERSION=$(node -p "require('./package.json').version")
-GIT观TEST=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+GIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 print_header() {
     echo ""
@@ -184,7 +184,7 @@ validate_generation() {
     local tmp_dir=$(mktemp -d)
     pushd "$tmp_dir" > /dev/null 2>&1
     
-    if bash ~/git/pi-saia-plugin/src/generate-saia-config.sh 2>&1; then
+    if bash "$(dirname "$0")/../src/generate-saia-config.sh" 2>&1; then
         if [ -f "pi-saia.json" ]; then
             local model_count=$(jq -r '.provider.saia.models | length' pi-saia.json 2>/dev/null || echo "0")
             if [ "$model_count" -gt 0 ]; then
@@ -235,7 +235,7 @@ main() {
     echo "=========================================="
     echo ""
     echo "Version: v$VERSION"
-    echo "Commit: $GIT观TEST"
+    echo "Commit: $GIT_HASH"
     echo ""
     echo "Next steps:"
     echo "  1. Review changes: git diff"

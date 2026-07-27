@@ -66,7 +66,7 @@ Yes! Run these commands:
 
 ```bash
 # Clone
-git clone https://codeberg.org/graphwiz-ai/pi-saia-plugin.git
+git clone https://github.com/tobias-weiss-ai-xr/pi-saia-plugin.git
 cd pi-saia-plugin
 
 # Install
@@ -401,7 +401,7 @@ Yes. To disable usage logging, modify or remove the `logUsage()` calls in `saia.
 ### Where can I get help?
 
 1. Check this FAQ
-2. Open an issue on [Codeberg](https://codeberg.org/graphwiz-ai/pi-saia-plugin/issues)
+2. Open an issue on [Codeberg](https://github.com/tobias-weiss-ai-xr/pi-saia-plugin/issues)
 3. Check the [SAIA documentation](https://chat-ai.academiccloud.de/docs)
 
 ### How do I report bugs?

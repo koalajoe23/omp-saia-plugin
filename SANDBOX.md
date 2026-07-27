@@ -24,12 +24,12 @@ SAIA_API_KEY=your_key_here ./sandbox/run.sh
 
 ```bash
 # Pull the latest image from GHCR
-docker pull ghcr.io/graphwiz-ai/pi-saia-plugin:latest
+docker pull ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest
 
 # Run a temporary container
 docker run -it --rm \
   -e SAIA_API_KEY=your_key \
-  ghcr.io/graphwiz-ai/pi-saia-plugin:latest sh
+  ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest sh
 
 # Build locally
 docker build -t pi-saia-plugin .
@@ -43,9 +43,9 @@ make sandbox
 
 | Image | Description | Size | Use Case |
 |-------|-------------|------|----------|
-| `ghcr.io/graphwiz-ai/pi-saia-plugin:latest` | Production image | ~50MB | Runtime use, CI/CD |
-| `ghcr.io/graphwiz-ai/pi-saia-plugin:latest-dev` | Development image | ~200MB | Plugin development, testing |
-| `ghcr.io/graphwiz-ai/pi-saia-plugin:vX.Y.Z` | Versioned image | ~50MB | Specific release deployment |
+| `ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest` | Production image | ~50MB | Runtime use, CI/CD |
+| `ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest-dev` | Development image | ~200MB | Plugin development, testing |
+| `ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:vX.Y.Z` | Versioned image | ~50MB | Specific release deployment |
 
 ## 🎯 Features
 
@@ -61,7 +61,7 @@ make sandbox
 ```bash
 ./sandbox/run.sh
 # or
-docker run -it --rm ghcr.io/graphwiz-ai/pi-saia-plugin:latest sh
+docker run -it --rm ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest sh
 ```
 
 #### 2. Development Mode
@@ -229,7 +229,7 @@ jobs:
       - name: Run sandbox tests
         run: |
           docker run --rm \
-            ghcr.io/graphwiz-ai/pi-saia-plugin:latest \
+            ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest \
             bash /home/pluginuser/app/sandbox/test.sh
 ```
 
@@ -238,19 +238,19 @@ jobs:
 ```bash
 # Show built-in ASCII art (works without API key)
 docker run -it --rm \
-  ghcr.io/graphwiz-ai/pi-saia-plugin:latest \
+  ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest \
   bash /home/pluginuser/app/sandbox/showcase.sh ascii
 
 # Generate a story with pi (requires SAIA_API_KEY)
 docker run -it --rm \
   -e SAIA_API_KEY="your_key" \
-  ghcr.io/graphwiz-ai/pi-saia-plugin:latest \
+  ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest \
   bash /home/pluginuser/app/sandbox/showcase.sh story
 
 # Tell a programming joke
 docker run -it --rm \
   -e SAIA_API_KEY="your_key" \
-  ghcr.io/graphwiz-ai/pi-saia-plugin:latest \
+  ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest \
   bash /home/pluginuser/app/sandbox/showcase.sh joke
 
 # Custom prompt
@@ -286,7 +286,7 @@ docker run --rm \
 
 ```bash
 # Run vulnerability scan
-docker scan ghcr.io/graphwiz-ai/pi-saia-plugin:latest
+docker scan ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest
 
 # View results in GitHub Security tab
 # (automatically uploaded from CI)
@@ -400,4 +400,4 @@ docker build --progress=plain --no-cache .
 
 ---
 
-For questions or issues, please open an issue on [Codeberg](https://codeberg.org/graphwiz-ai/pi-saia-plugin/issues).
+For questions or issues, please open an issue on [Codeberg](https://github.com/tobias-weiss-ai-xr/pi-saia-plugin/issues).

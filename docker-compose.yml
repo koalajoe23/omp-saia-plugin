@@ -6,7 +6,7 @@ version: '3.8'
 services:
   # Production-ready SAIA plugin container
   saia-plugin:
-    image: ghcr.io/graphwiz-ai/pi-saia-plugin:latest
+    image: ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest
     container_name: saia-plugin
     environment:
       - NODE_ENV=production
@@ -27,7 +27,7 @@ services:
 
   # Development container with build tools
   saia-plugin-dev:
-    image: ghcr.io/graphwiz-ai/pi-saia-plugin:latest-dev
+    image: ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest-dev
     container_name: saia-plugin-dev
     environment:
       - NODE_ENV=development
@@ -53,7 +53,7 @@ services:
 
   # Test container for CI/CD
   saia-plugin-test:
-    image: ghcr.io/graphwiz-ai/pi-saia-plugin:latest
+    image: ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest
     container_name: saia-plugin-test
     environment:
       - NODE_ENV=test

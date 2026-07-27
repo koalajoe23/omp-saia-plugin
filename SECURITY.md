@@ -7,7 +7,7 @@ If you discover a security vulnerability in pi-saia-plugin, please report it res
 1. **Do NOT** create a public GitHub/Codeberg issue
 2. **Do NOT** discuss it in public channels
 3. **DO** report it privately via email:
-   - Security issues: security@graphwiz-ai.com (or open an issue marked as security advisory)
+   - Security issues: security@tobias-weiss-ai-xr.dev (or open an issue marked as security advisory)
    - General bugs: Use the regular issue tracker
 
 ## Security Features
@@ -98,6 +98,6 @@ All data collected by the plugin is **local-only**:
 ## Contact
 
 For security-related questions:
-- Email: security@graphwiz-ai.com
+- Email: security@tobias-weiss-ai-xr.dev
 - GitHub: [@tobias-weiss-ai-xr](https://github.com/tobias-weiss-ai-xr)
-- Codeberg: [@graphwiz-ai](https://codeberg.org/graphwiz-ai)
+- Codeberg: [tobias-weiss-ai-xr](https://github.com/tobias-weiss-ai-xr)

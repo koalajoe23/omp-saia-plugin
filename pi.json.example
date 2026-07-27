@@ -22,5 +22,34 @@
     "external_directory": "ask",
     "doom_loop": "ask"
   },
-  "formatter": {}
+  "formatter": {},
+  "provider": {
+    "saia": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "SAIA (GWDG Chat AI)",
+      "options": {
+        "baseURL": "https://chat-ai.academiccloud.de/v1",
+        "apiKey": "{env:SAIA_API_KEY}"
+      },
+      "models": {
+        "glm-4.7": {
+          "name": "GLM-4.7 (128k ctx) — Agentic coding, strong tool use",
+          "options": {
+            "enable-tools": true,
+            "enable-auto-tool-choice": true,
+            "tool-call-parser": "openai"
+          },
+          "limit": {
+            "context": 128000,
+            "output": 16384
+          },
+          "metadata": {
+            "cost_per_1k_tokens": 0.015,
+            "estimated_latency": "fast",
+            "recommended_for": ["agentic-coding", "tool-use", "architecture"]
+          }
+        }
+      }
+    }
+  }
 }

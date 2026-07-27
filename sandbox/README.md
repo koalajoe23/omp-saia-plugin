@@ -13,10 +13,10 @@ This directory contains configuration and scripts for running the SAIA plugin in
 
 ```bash
 # From the project root
-docker build -t ghcr.io/graphwiz-ai/pi-saia-plugin:latest .
+docker build -t ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest .
 
 # Or pull the pre-built image
-docker pull ghcr.io/graphwiz-ai/pi-saia-plugin:latest
+docker pull ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest
 ```
 
 ### 2. Run the Sandbox
@@ -25,19 +25,19 @@ docker pull ghcr.io/graphwiz-ai/pi-saia-plugin:latest
 # Basic sandbox with your API key
 docker run -it --rm \
   -e SAIA_API_KEY="your_actual_api_key" \
-  ghcr.io/graphwiz-ai/pi-saia-plugin:latest sh
+  ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest sh
 
 # With development profile
 docker run -it --rm \
   -e SAIA_API_KEY="your_actual_api_key" \
   -e SAIA_PROFILE="development" \
-  ghcr.io/graphwiz-ai/pi-saia-plugin:latest sh
+  ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest sh
 
 # With volume mount for config persistence
 docker run -it --rm \
   -e SAIA_API_KEY="your_actual_api_key" \
   -v $(pwd)/pi-config:/home/pluginuser/.config/pi \
-  ghcr.io/graphwiz-ai/pi-saia-plugin:latest sh
+  ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest sh
 ```
 
 ### 3. Run the Showcase
@@ -45,13 +45,13 @@ docker run -it --rm \
 ```bash
 # Show ASCII art (works without API key)
 docker run -it --rm \
-  ghcr.io/graphwiz-ai/pi-saia-plugin:latest \
+  ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest \
   bash /home/pluginuser/app/sandbox/showcase.sh ascii
 
 # Generate content with pi (requires API key)
 docker run -it --rm \
   -e SAIA_API_KEY="your_actual_api_key" \
-  ghcr.io/graphwiz-ai/pi-saia-plugin:latest \
+  ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest \
   bash /home/pluginuser/app/sandbox/showcase.sh story
 ```
 
@@ -60,17 +60,17 @@ docker run -it --rm \
 ```bash
 # Run TypeScript compilation check
 docker run -it --rm \
-  ghcr.io/graphwiz-ai/pi-saia-plugin:latest \
+  ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest \
   npx tsc --noEmit --skipLibCheck
 
 # Validate JSON files
 docker run -it --rm \
-  ghcr.io/graphwiz-ai/pi-saia-plugin:latest \
+  ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest \
   jq empty package.json tsconfig.json
 
 # Run the full test suite
 docker run -it --rm \
-  ghcr.io/graphwiz-ai/pi-saia-plugin:latest \
+  ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest \
   bash test/test.sh
 ```
 
@@ -118,7 +118,7 @@ docker run -it --rm \
   -e SAIA_API_KEY="your_api_key" \
   -e SAIA_PROFILE="production" \
   -v $(pwd):/workspace \
-  ghcr.io/graphwiz-ai/pi-saia-plugin:latest \
+  ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest \
   bash -c "cd /home/pluginuser/app && ./src/generate-saia-config.sh"
 ```
 
@@ -128,7 +128,7 @@ docker run -it --rm \
 docker run -it --rm \
   -e SAIA_API_KEY="your_api_key" \
   -v $(pwd):/home/pluginuser/app \
-  ghcr.io/graphwiz-ai/pi-saia-plugin:latest-dev \
+  ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest-dev \
   bash
 ```
 
@@ -137,7 +137,7 @@ docker run -it --rm \
 ```bash
 docker run -it --rm \
   -e SAIA_API_KEY="your_api_key" \
-  ghcr.io/graphwiz-ai/pi-saia-plugin:latest \
+  ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest \
   bash -c "curl -s -H 'Authorization: Bearer \$SAIA_API_KEY' \
     https://chat-ai.academiccloud.de/v1/models | jq '.data | length'"
 ```
@@ -148,7 +148,7 @@ docker run -it --rm \
 docker run -it --rm \
   -e SAIA_API_KEY="your_api_key" \
   -v $(pwd)/pi-config:/home/pluginuser/.config/pi \
-  ghcr.io/graphwiz-ai/pi-saia-plugin:latest \
+  ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest \
   bash /home/pluginuser/app/src/setup-wizard.sh
 ```
 
@@ -195,7 +195,7 @@ For more complex setups, use Docker Compose:
 version: '3.8'
 services:
   saia-plugin:
-    image: ghcr.io/graphwiz-ai/pi-saia-plugin:latest
+    image: ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest
     environment:
       - SAIA_API_KEY=${SAIA_API_KEY}
       - SAIA_PROFILE=development
@@ -225,7 +225,7 @@ docker build -t pi-saia-plugin .
 ```bash
 docker buildx create --use
 docker buildx build --platform linux/amd64,linux/arm64 \
-  -t ghcr.io/graphwiz-ai/pi-saia-plugin:latest \
+  -t ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest \
   --push .
 ```
 

@@ -95,13 +95,13 @@ make test
 ### Images Available on GHCR
 ```bash
 # Production image
-docker pull ghcr.io/graphwiz-ai/pi-saia-plugin:latest
+docker pull ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest
 
 # Development image  
-docker pull ghcr.io/graphwiz-ai/pi-saia-plugin:latest-dev
+docker pull ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest-dev
 
 # Version-specific
-docker pull ghcr.io/graphwiz-ai/pi-saia-plugin:v0.1.0
+docker pull ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:v0.1.0
 ```
 
 ### Automatic Deployment
@@ -161,7 +161,7 @@ npm run tsc
 - name: Test in Sandbox
   run: |
     docker run --rm \
-      ghcr.io/graphwiz-ai/pi-saia-plugin:latest \
+      ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest \
       bash /home/pluginuser/app/sandbox/test.sh
 ```
 
@@ -216,7 +216,7 @@ docker run --rm pi-saia-plugin jq empty package.json
 ## 🔧 What's Next
 
 ### For Users
-1. **Pull the image**: `docker pull ghcr.io/graphwiz-ai/pi-saia-plugin:latest`
+1. **Pull the image**: `docker pull ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest`
 2. **Run the sandbox**: `./sandbox/run.sh`
 3. **Explore Make commands**: `make help`
 
@@ -226,13 +226,13 @@ docker run --rm pi-saia-plugin jq empty package.json
 3. **Push changes**: CI will rebuild images automatically
 
 ### For CI/CD Integration
-1. **Use in workflows**: Reference `ghcr.io/graphwiz-ai/pi-saia-plugin:latest`
+1. **Use in workflows**: Reference `ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest`
 2. **Mount volumes**: For persistent data
 3. **Set environment variables**: For API keys and profiles
 
 ## 📞 Support
 
-- **Issues**: [Codeberg Issues](https://codeberg.org/graphwiz-ai/pi-saia-plugin/issues)
+- **Issues**: [Codeberg Issues](https://github.com/tobias-weiss-ai-xr/pi-saia-plugin/issues)
 - **Documentation**: [sandbox/README.md](sandbox/README.md)
 - **Quick Start**: [SANDBOX.md](SANDBOX.md)
 

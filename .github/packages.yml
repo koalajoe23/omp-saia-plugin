@@ -6,7 +6,7 @@ name: pi-saia-plugin
 packages:
   docker:
     # Docker image on GitHub Container Registry
-    name: ghcr.io/graphwiz-ai/pi-saia-plugin
+    name: ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin
     description: SAIA (GWDG Chat AI) plugin for pi coding agent
     
     # Image variants
@@ -70,12 +70,12 @@ packages:
     labels:
       - org.opencontainers.image.title=SAIA Plugin for pi Coding Agent
       - org.opencontainers.image.description=SAIA (GWDG Chat AI) plugin for pi coding agent — model config generator, profiles, caching, and skills
-      - org.opencontainers.image.url=https://codeberg.org/graphwiz-ai/pi-saia-plugin
-      - org.opencontainers.image.source=https://codeberg.org/graphwiz-ai/pi-saia-plugin
+      - org.opencontainers.image.url=https://github.com/tobias-weiss-ai-xr/pi-saia-plugin
+      - org.opencontainers.image.source=https://github.com/tobias-weiss-ai-xr/pi-saia-plugin
       - org.opencontainers.image.licenses=MIT
-      - org.opencontainers.image.vendor=graphwiz-ai
-      - org.opencontainers.image.authors=graphwiz-ai
-      - maintainer=graphwiz-ai <graphwiz-ai@codeberg.org>
+      - org.opencontainers.image.vendor=tobias-weiss-ai-xr
+      - org.opencontainers.image.authors=tobias-weiss-ai-xr
+      - maintainer=tobias-weiss-ai-xr <tobias@weiss-ai.dev>
 
 publishing:
   # When to publish
@@ -118,13 +118,13 @@ dependencies:
 # Usage examples for users
 usage:
   install:
-    docker: pull ghcr.io/graphwiz-ai/pi-saia-plugin:latest
+    docker: pull ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest
     
   development:
-    docker: run -it --rm -v $(pwd):/app ghcr.io/graphwiz-ai/pi-saia-plugin:latest-dev sh
+    docker: run -it --rm -v $(pwd):/app ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest-dev sh
     
   production:
-    docker: run -d -e SAIA_API_KEY=your_key ghcr.io/graphwiz-ai/pi-saia-plugin:latest
+    docker: run -d -e SAIA_API_KEY=your_key ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest
 
 # Maintenance
 maintenance:
@@ -134,7 +134,7 @@ maintenance:
     schedule: daily
     
   vulnerability_scan:
-    command: docker scan ghcr.io/graphwiz-ai/pi-saia-plugin:latest
+    command: docker scan ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest
     schedule: weekly
     
   test_build:
