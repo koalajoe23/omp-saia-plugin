@@ -112,20 +112,4 @@ EOF
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  mirror-to-codeberg:
-    name: Mirror to Codeberg
-    needs: release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Push to Codeberg
-        run: |
-          git remote add codeberg git@codeberg.org:tobias-weiss-ai-xr/pi-saia-plugin.git
-          git push codeberg master
-          git push codeberg v${{ steps.version.outputs.version }}
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.CODEBERG_SSH_KEY }}
