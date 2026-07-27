@@ -1,64 +1,29 @@
 {
   "name": "pi-saia-plugin",
-  "version": "0.1.0",
-  "description": "SAIA (GWDG Chat AI) plugin for pi coding agent — model config generator, profiles, caching, and skills",
+  "version": "1.0.0",
+  "description": "Pi package for SAIA (Academic Cloud Hessen) models — GLM, Qwen, DevStral, GPT-OSS. Auto-registers provider, models, and usage skill.",
+  "keywords": ["pi-package", "saia", "academic-cloud", "llm", "provider"],
   "type": "module",
-  "main": "./src/saia.ts",
-  "bin": {
-    "generate-saia-config": "./src/generate-saia-config.sh",
-    "copy-saia-config": "./src/copy-saia-config.sh",
-    "validate-saia-config": "./src/validate-config.sh",
-    "setup-saia-wizard": "./src/setup-wizard.sh"
-  },
-  "files": [
-    "src/",
-    "schema/",
-    ".opencode/",
-    "install.sh",
-    "install.ps1",
-    "LICENSE",
-    "README.md",
-    "FAQ.md"
-  ],
+  "main": "extensions/index.ts",
   "scripts": {
-    "prepare-release": "bash prepare-release.sh",
-    "validate": "bash src/validate-config.sh pi.json",
-    "generate": "bash src/generate-saia-config.sh",
-    "tsc": "tsc --noEmit --skipLibCheck",
-    "sandbox": "bash sandbox/run.sh",
-    "sandbox:dev": "bash sandbox/dev.sh",
-    "sandbox:test": "bash sandbox/test.sh",
-    "docker:build": "docker build -t ghcr.io/graphwiz-ai/pi-saia-plugin:latest .",
-    "docker:build-dev": "docker build -t ghcr.io/graphwiz-ai/pi-saia-plugin:latest-dev --target builder .",
-    "docker:push": "docker push ghcr.io/graphwiz-ai/pi-saia-plugin:latest",
-    "docker:push-dev": "docker push ghcr.io/graphwiz-ai/pi-saia-plugin:latest-dev",
-    "docker:pull": "docker pull ghcr.io/graphwiz-ai/pi-saia-plugin:latest",
-    "docker:run": "docker run -it --rm -e SAIA_API_KEY=\$SAIA_API_KEY ghcr.io/graphwiz-ai/pi-saia-plugin:latest sh"
+    "lint": "tsc --noEmit"
+  },
+  "pi": {
+    "extensions": ["./extensions"],
+    "skills": ["./skills"]
   },
   "repository": {
     "type": "git",
-    "url": "https://codeberg.org/graphwiz-ai/pi-saia-plugin.git"
+    "url": "https://github.com/tobias-weiss-ai-xr/pi-saia-plugin"
   },
-  "keywords": [
-    "pi",
-    "coding-agent",
-    "saia",
-    "gwdg",
-    "ai",
-    "plugin",
-    "models",
-    "chat-ai"
-  ],
+  "author": "Tobias Weiss",
   "license": "MIT",
-  "author": "graphwiz-ai",
-  "bugs": {
-    "url": "https://codeberg.org/graphwiz-ai/pi-saia-plugin/issues"
-  },
-  "homepage": "https://codeberg.org/graphwiz-ai/pi-saia-plugin",
-  "engines": {
-    "node": ">=20.0.0"
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
   },
   "devDependencies": {
-    "@types/node": "^20.19.43"
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2"
   }
 }
