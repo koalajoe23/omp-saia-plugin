@@ -54,12 +54,12 @@ RUN apk add --no-cache \
     ca-certificates \
     tzdata
 
-# Create non-root user for security
-RUN adduser -D -s /bin/bash -u 1000 -G node pluginuser
+# Create non-root user (node user already has UID 1000)
+RUN adduser -D -s /bin/bash -G node pluginuser
 WORKDIR /home/pluginuser
 
 # Copy from builder
-COPY --from=builder --chown=pluginuser:pluginuser /app /home/pluginuser/app
+COPY --from=builder --chown=node:node /app /home/pluginuser/app
 
 # Ensure correct permissions
 RUN chmod +x /home/pluginuser/app/src/*.sh /home/pluginuser/app/install*.sh
@@ -73,22 +73,22 @@ RUN mkdir -p /home/pluginuser/.config/pi/plugins/saia && \
     mkdir -p /home/pluginuser/.cache/saia
 
 # Copy plugin files to pi plugins directory
-RUN cp -r /home/pluginuser/app/src/* /home/pluginuser/.config/pi/plugins/saia/ && \
+RUN cp -r /home/pluginuser/app/src/. /home/pluginuser/.config/pi/plugins/saia/ && \
     cp -r /home/pluginuser/app/schema /home/pluginuser/.config/pi/plugins/saia/ && \
+    cp -r /home/pluginuser/app/skills /home/pluginuser/.config/pi/plugins/saia/ && \
     chmod +x /home/pluginuser/.config/pi/plugins/saia/*.sh
 
 # Environment variables
 ENV NODE_ENV=production
-ENV SAIA_API_KEY=""
 ENV SAIA_PROFILE="production"
 ENV LITELLM_PROXY_URL=""
 
-# Default command: show help
-CMD ["/bin/bash", "-c", "echo 'SAIA Plugin Docker Image - Use with: docker run -it --rm -e SAIA_API_KEY=your_key -v \$(pwd):/workspace ghcr.io/graphwiz-ai/pi-saia-plugin:latest sh' && exec /bin/bash"]
+# Default command: start shell
+CMD ["sh"]
 
 # =============================================================================
 # Build Instructions:
 # =============================================================================
 # Development:   docker build -t pi-saia-plugin --target builder .
 # Production:    docker build -t pi-saia-plugin .
-# Multi-arch:    docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/graphwiz-ai/pi-saia-plugin:latest --push .
+# Multi-arch:    docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest --push .

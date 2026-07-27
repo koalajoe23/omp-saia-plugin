@@ -105,7 +105,22 @@ export default async (pi: any) => {
   // Register skills if available
   if (pi.registerSkill) {
     const skillsDir = path.join(pluginDir, ".opencode", "skills")
-    // Skills will be loaded from skills/ directory
+    const fs = await import("node:fs/promises")
+    try {
+      const skillFiles = await fs.readdir(skillsDir)
+      for (const file of skillFiles) {
+        if (file.endsWith(".md")) {
+          try {
+            await pi.registerSkill(path.join(skillsDir, file))
+            console.log(`[SAIA] Registered skill: ${file}`)
+          } catch (skillErr) {
+            console.error(`[SAIA] Failed to register skill ${file}:`, skillErr)
+          }
+        }
+      }
+    } catch {
+      console.log("[SAIA] No skills directory found at", skillsDir)
+    }
   }
 
   console.log(`[SAIA Plugin] Loaded successfully`)

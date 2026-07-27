@@ -367,9 +367,11 @@ fi
 print_info "Generating pi configuration..."
 
 # Create header
-cat > "$MASTER_CONFIG" <<'HEADER'
+DEFAULT_MODEL=$(get_profile_default_model "$PROFILE_CONFIG")
+
+cat > "$MASTER_CONFIG" <<HEADER
 {
-  "$schema": "https://pi.code/config.json",
+  "\$schema": "https://pi.code/config.json",
   "permission": {
     "bash": "allow",
     "edit": "allow",
@@ -389,7 +391,7 @@ cat > "$MASTER_CONFIG" <<'HEADER'
     "mymcp_*": "ask"
   },
   "formatter": {},
-  "model": "saia/$(get_profile_default_model "$PROFILE_CONFIG")",
+  "model": "saia/${DEFAULT_MODEL}",
   "provider": {
     "saia": {
       "npm": "@ai-sdk/openai-compatible",
@@ -483,7 +485,9 @@ jq --arg lu "$LAST_UPDATED" '. + {last_updated: $lu}' "$MASTER_CONFIG" > "${MAST
 print_info "last_updated: $LAST_UPDATED"
 
 if [[ "$USE_PROXY" == "true" ]]; then
-    sed -i "s|https://chat-ai.academiccloud.de/v1|${LITELLM_PROXY_URL}|g" "$MASTER_CONFIG"
+    # sed -i with portable backup extension (empty on GNU, required on macOS)
+sed_i() { sed -i.bak "$@" && rm -f "${@: -1}.bak"; }
+sed_i "s|https://chat-ai.academiccloud.de/v1|${LITELLM_PROXY_URL}|g" "$MASTER_CONFIG"
     print_info "Configured to use LiteLLM proxy: $LITELLM_PROXY_URL"
 fi
 

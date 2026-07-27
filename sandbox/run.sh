@@ -8,10 +8,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Default values
-IMAGE_NAME="ghcr.io/graphwiz-ai/pi-saia-plugin:latest"
-IMAGE_DEV="ghcr.io/graphwiz-ai/pi-saia-plugin:latest-dev"
+IMAGE_NAME="ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest"
+IMAGE_DEV="ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest-dev"
 CONTAINER_NAME="saia-sandbox"
-WORKSPACE üzrə="$(pwd)/saia-sandbox-workspace"
+WORKSPACE="$(pwd)/saia-sandbox-workspace"
 
 # Colors
 RED='\033[0;31m'

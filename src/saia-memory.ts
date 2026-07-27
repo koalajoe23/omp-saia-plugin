@@ -13,6 +13,7 @@ const PREFERENCES_FILE = path.join(os.homedir(), ".config", "pi", "saia-preferen
 const PROJECT_CONTEXT_FILE = path.join(process.cwd(), ".pi", "saia", "context.json")
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000 // 24 hours
+const MODELS_CACHE_FILE = path.join(CACHE_DIR, "pi-models-list.json")
 
 /** Ensure cache directory exists */
 export async function ensureCacheDir(): Promise<void> {
@@ -255,8 +256,6 @@ interface ModelDiff {
   added: string[]
   removed: string[]
 }
-
-const MODELS_CACHE_FILE = path.join(CACHE_DIR, "pi-models-list.json")
 
 /**
  * Check for new or removed models compared to the last cached list

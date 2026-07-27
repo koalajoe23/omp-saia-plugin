@@ -162,7 +162,13 @@ run_wizard() {
 
     if [[ ! -d "$plugin_dir" ]]; then
         mkdir -p "$plugin_dir"
-        cp -r "$SCRIPT_DIR"/*.sh "$SCRIPT_DIR"/*.json "$SCRIPT_DIR"/*.ts "$plugin_dir/" 2>/dev/null || true
+        # Use find with nullglob-safe expansion to avoid glob failures
+        shopt -s nullglob
+        local files=("$SCRIPT_DIR"/*.sh "$SCRIPT_DIR"/*.json "$SCRIPT_DIR"/*.ts)
+        shopt -u nullglob
+        if [[ ${#files[@]} -gt 0 ]]; then
+            cp -r "${files[@]}" "$plugin_dir/" 2>/dev/null || true
+        fi
         chmod +x "$plugin_dir"/*.sh 2>/dev/null || true
         print_success "Plugin files installed to $plugin_dir"
     fi

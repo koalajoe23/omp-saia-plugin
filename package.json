@@ -6,7 +6,8 @@
   "type": "module",
   "main": "extensions/index.ts",
   "scripts": {
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "tsc": "tsc --noEmit"
   },
   "pi": {
     "extensions": ["./extensions"],

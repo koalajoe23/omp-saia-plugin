@@ -308,8 +308,25 @@ main() {
     echo "╚═══════════════════════════════════════════════════════════╝"
     echo ""
 
-    local image="ghcr.io/graphwiz-ai/pi-saia-plugin:latest"
-    local dev_image="ghcr.io/graphwiz-ai/pi-saia-plugin:latest-dev"
+    local image="ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest"
+    local dev_image="ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin:latest-dev"
+    local project_root="$(dirname "$(dirname "${BASH_SOURCE[0]}")")"
+
+    # Build images if they don't exist locally
+    if ! docker image inspect "$image" &>/dev/null; then
+        echo_info "Building production image..."
+        docker build -t "$image" "$project_root" 2>&1 || {
+            echo_error "Failed to build production image"
+            exit 1
+        }
+    fi
+
+    if ! docker image inspect "$dev_image" &>/dev/null; then
+        echo_info "Building development image..."
+        docker build --target builder -t "$dev_image" "$project_root" 2>&1 || {
+            echo_warning "Failed to build dev image, tests may be limited"
+        }
+    fi
 
     # Check if specific test is requested
     local specific_test="${1:-}"

@@ -79,7 +79,7 @@ clean: ## Remove build artifacts
 # Docker Targets
 # =============================================================================
 
-DOCKER_IMAGE := ghcr.io/graphwiz-ai/pi-saia-plugin
+DOCKER_IMAGE := ghcr.io/tobias-weiss-ai-xr/pi-saia-plugin
 DOCKER_TAG := latest
 DOCKER_TAG_DEV := latest-dev
 

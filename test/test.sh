@@ -151,8 +151,6 @@ test_json_validity() {
         "tsconfig.json"
         "schema/pi.schema.json"
         "pi.json.example"
-        ".github/workflows/test.yml"
-        ".github/workflows/release.yml"
     )
     
     for file in "${json_files[@]}"; do
