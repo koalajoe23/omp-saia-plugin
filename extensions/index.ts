@@ -1,78 +1,41 @@
 /**
  * pi-saia-plugin: SAIA (Academic Cloud Hessen) provider registration.
  *
- * Registers the SAIA provider with GLM, Qwen, DevStral, and GPT-OSS models.
- * API key is read from auth.json (key: "saia") or models.json provider apiKey.
+ * Discovers models dynamically from the SAIA API /models endpoint
+ * at startup, resolves capabilities from the response, and registers
+ * the provider with pi.
+ *
+ * API key: $SAIA_API_KEY environment variable (or via /login saia)
  *
  * Install: pi install /path/to/pi-saia-plugin
  * Reload:  /reload
  */
 
 import type { ExtensionAPI, ProviderModelConfig } from "@earendil-works/pi-coding-agent";
+import { PROVIDER_ID, BASE_URL } from "./constants.js";
+import { fetchModels, buildModelDefs } from "./discovery.js";
+import { toModelConfig } from "./config.js";
 
-const SAIA_MODELS: ProviderModelConfig[] = [
-  {
-    id: "glm-4.7",
-    name: "GLM 4.7 (SAIA)",
-    reasoning: true,
-    input: ["text"],
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 131_072,
-    maxTokens: 32_768,
-  },
-  {
-    id: "qwen3.5-397b-a17b",
-    name: "Qwen 3.5 397B (SAIA)",
-    reasoning: true,
-    input: ["text"],
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 131_072,
-    maxTokens: 32_768,
-  },
-  {
-    id: "qwen3.5-122b-a10b",
-    name: "Qwen 3.5 122B (SAIA)",
-    reasoning: true,
-    input: ["text"],
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 131_072,
-    maxTokens: 32_768,
-  },
-  {
-    id: "devstral-2-123b-instruct-2512",
-    name: "DevStral 2 123B (SAIA)",
-    reasoning: true,
-    input: ["text"],
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 131_072,
-    maxTokens: 32_768,
-  },
-  {
-    id: "openai-gpt-oss-120b",
-    name: "GPT-OSS 120B (SAIA)",
-    reasoning: true,
-    input: ["text"],
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 131_072,
-    maxTokens: 32_768,
-  },
-  {
-    id: "qwen3.6-27b",
-    name: "Qwen 3.6 27B (SAIA)",
-    reasoning: true,
-    input: ["text"],
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 131_072,
-    maxTokens: 32_768,
-  },
-];
+export default async function (pi: ExtensionAPI) {
+  let models: ProviderModelConfig[] = [];
 
-export default function (pi: ExtensionAPI) {
-  pi.registerProvider("saia", {
+  try {
+    const response = await fetchModels();
+    const defs = buildModelDefs(response);
+    models = defs.map(toModelConfig);
+    console.log(`[SAIA] Discovered ${models.length} models from API`);
+  } catch (error) {
+    console.warn(
+      "[SAIA] Failed to fetch models from API:",
+      error instanceof Error ? error.message : error,
+    );
+    console.warn("[SAIA] Registering provider with no models. Set $SAIA_API_KEY and reload.");
+  }
+
+  pi.registerProvider(PROVIDER_ID, {
     name: "SAIA Academic Cloud",
-    baseUrl: "https://chat-ai.academiccloud.de/v1",
+    baseUrl: BASE_URL,
     apiKey: "$SAIA_API_KEY",
-    api: "openai-completions",
-    models: SAIA_MODELS,
+    models,
   });
 }
