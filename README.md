@@ -13,7 +13,7 @@ This plugin is part of a broader agent memory ecosystem; see the [agent-memory-r
 
 ## Features
 
-- **Auto-registration** — `pi.registerProvider()` adds all 6 SAIA models on startup
+- **Dynamic discovery** — `pi.registerProvider()` queries the SAIA `/v1/models` API on startup and registers all available models automatically
 - **Zero config** — API key from `auth.json`, `$SAIA_API_KEY` env var, or `/login saia`
 - **Skill included** — `/skill:saia-models` documents available models and usage
 - **OpenAI-compatible** — Uses standard `openai-completions` API
@@ -36,14 +36,24 @@ Then reload or restart pi:
 
 ## Available Models
 
+Models are **dynamically discovered** from the SAIA API on startup. The table below lists currently known models with context windows sourced from [official SAIA docs](https://docs.hpc.gwdg.de/services/ai-services/chat-ai/models/index.html).
+
 | Model ID | Name | Context | Reasoning |
 |----------|------|---------|-----------|
-| `saia/glm-4.7` | GLM 4.7 | 128K | ✅ |
-| `saia/qwen3.5-397b-a17b` | Qwen 3.5 397B | 128K | ✅ |
-| `saia/qwen3.5-122b-a10b` | Qwen 3.5 122B | 128K | ✅ |
-| `saia/devstral-2-123b-instruct-2512` | DevStral 2 123B | 128K | ✅ |
+| `saia/glm-4.7` | GLM 4.7 | 200K | ✅ |
+| `saia/qwen3.5-397b-a17b` | Qwen 3.5 397B | 256K | ✅ |
+| `saia/qwen3.5-122b-a10b` | Qwen 3.5 122B | 256K | ✅ |
+| `saia/devstral-2-123b-instruct-2512` | DevStral 2 123B | 256K | ✅ |
 | `saia/openai-gpt-oss-120b` | GPT-OSS 120B | 128K | ✅ |
-| `saia/qwen3.6-27b` | Qwen 3.6 27B | 128K | ✅ |
+| `saia/qwen3.6-27b` | Qwen 3.6 27B | 262K | ✅ |
+| `saia/qwen3.6-35b-a3b` | Qwen 3.6 35B | 262K | ✅ |
+| `saia/deepseek-v4-flash` | DeepSeek V4 Flash | 1M | ✅ |
+| `saia/mistral-medium-3.5-128b` | Mistral Medium 3.5 | 256K | ✅ |
+| `saia/gemma-4-31b-it` | Gemma 4 31B | 256K | ✅ |
+| `saia/qwen3-30b-a3b-instruct-2507` | Qwen 3 30B | 256K | ✅ |
+| `saia/medgemma-27b-it` | MedGemma 27B | 32K | ✅ |
+
+> The actual set may vary — run `pi --list-models | grep ^saia` to see what's currently available.
 
 ## Usage
 
@@ -73,11 +83,15 @@ The API key is resolved from (in order):
 
 ```
 pi-saia-plugin/
-├── package.json          # Pi package manifest
+├── package.json              # Pi package manifest
 ├── extensions/
-│   └── index.ts          # Provider registration via registerProvider()
+│   ├── index.ts              # Provider registration (async, dynamic discovery)
+│   ├── discovery.ts          # API client: fetchModels(), buildModelDefs()
+│   ├── config.ts             # ModelDef → ProviderModelConfig transformer
+│   ├── constants.ts          # Provider ID, base URL, context window table
+│   └── types.ts              # TypeScript interfaces for API responses
 └── skills/
-    └── saia-models.md    # Model documentation skill
+    └── saia-models.md        # Model documentation skill
 ```
 
 ## Development
