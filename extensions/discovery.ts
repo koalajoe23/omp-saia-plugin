@@ -2,6 +2,23 @@ import { MODELS_ENDPOINT, DEFAULT_CONTEXT_WINDOW, DEFAULT_MAX_TOKENS, CONTEXT_WI
 import type { SaiaModelResponse, ModelDef } from "./types.js";
 
 /**
+ * Models confirmed to support reasoning even though the SAIA API does not
+ * include "thought" in their output array. The API metadata is incomplete
+ * for certain vLLM-backed models that still accept `reasoning_effort` and
+ * return `reasoning` content in responses.
+ *
+ * Verified by testing each model with `reasoning_effort: "high"` and
+ * checking for a non-null `reasoning` field in the response.
+ */
+const REASONING_OVERRIDES: ReadonlySet<string> = new Set([
+  "deepseek-v4-flash",
+  "mistral-medium-3.5-128b",
+  "openai-gpt-oss-120b",
+  "qwen3.6-27b",
+  "qwen3.6-35b-a3b",
+]);
+
+/**
  * Fetch available models from the SAIA API.
  * Requires SAIA_API_KEY environment variable.
  */
@@ -33,6 +50,20 @@ export function resolveContextWindow(modelId: string): number {
   return CONTEXT_WINDOWS[modelId] ?? DEFAULT_CONTEXT_WINDOW;
 }
 
+/**
+ * Determine whether a model supports reasoning.
+ *
+ * The SAIA API includes "thought" in `output` for some reasoning models,
+ * but many vLLM-backed models accept `reasoning_effort` and return
+ * `reasoning` content without advertising it. We use a static override
+ * set for models confirmed by direct testing.
+ */
+function supportsReasoning(entry: SaiaModelResponse["data"][number]): boolean {
+  if (entry.output?.includes("thought")) return true;
+  if (REASONING_OVERRIDES.has(entry.id)) return true;
+  return false;
+}
+
 /** Build internal ModelDef array from the raw API response. */
 export function buildModelDefs(response: SaiaModelResponse): ModelDef[] {
   return response.data
@@ -40,7 +71,7 @@ export function buildModelDefs(response: SaiaModelResponse): ModelDef[] {
     .map((entry) => ({
       id: entry.id,
       name: entry.name,
-      reasoning: entry.output?.includes("thought") ?? false,
+      reasoning: supportsReasoning(entry),
       vision: entry.input?.includes("image") ?? false,
       contextWindow: resolveContextWindow(entry.id),
       maxTokens: DEFAULT_MAX_TOKENS,
