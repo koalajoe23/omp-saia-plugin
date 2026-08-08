@@ -22,7 +22,7 @@ This is the OMP port of [pi-saia-plugin](https://github.com/tobias-weiss-ai-xr/p
 omp plugin link /path/to/omp-saia-plugin
 
 # From git
-omp plugin install github:USER/omp-saia-plugin
+omp plugin install github:koalajoe23/omp-saia-plugin
 ```
 
 The plugin is enabled automatically on install. Restart omp if it was running.
@@ -99,7 +99,7 @@ omp-saia-plugin/
 ## Development
 
 ```bash
-git clone https://github.com/tobias-weiss-ai-xr/omp-saia-plugin
+git clone https://github.com/koalajoe23/omp-saia-plugin
 cd omp-saia-plugin
 bun install
 bun check    # tsc --noEmit
