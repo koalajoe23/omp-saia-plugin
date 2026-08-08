@@ -1,65 +1,58 @@
-# pi-saia-plugin
-> **⚠️ Migrated from Codeberg → GitHub**: This repository has moved permanently to [GitHub](https://github.com/tobias-weiss-ai-xr/pi-saia-plugin). The Codeberg mirror is deprecated.
+# omp-saia-plugin
 
-
-> SAIA (Academic Cloud Hessen) provider for the [pi coding agent](https://pi.dev)
+> SAIA (Academic Cloud Hessen) provider for the [OMP coding agent](https://github.com/oh-my-pi/pi-coding-agent)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Pi Package](https://img.shields.io/badge/pi-package-blue)](https://pi.dev/packages)
 
-A [pi package](https://pi.dev/docs/packages) that auto-registers all **SAIA Academic Cloud** models as a provider — no manual configuration needed.
+An [OMP plugin](https://github.com/oh-my-pi/pi-coding-agent) that auto-registers all **SAIA Academic Cloud** models as a provider — no manual configuration needed.
 
-This plugin is part of a broader agent memory ecosystem; see the [agent-memory-research](https://github.com/tobias-weiss-ai-xr/agent-memory-research) survey [[arXiv 2512.13564](https://arxiv.org/abs/2512.13564)] for the research foundation driving our memory architecture design.
+This is the OMP port of [pi-saia-plugin](https://github.com/tobias-weiss-ai-xr/pi-saia-plugin). It is part of a broader agent memory ecosystem; see the [agent-memory-research](https://github.com/tobias-weiss-ai-xr/agent-memory-research) survey [[arXiv 2512.13564](https://arxiv.org/abs/2512.13564)] for the research foundation driving our memory architecture design.
 
 ## Features
 
-- **Dynamic discovery** — `pi.registerProvider()` queries the SAIA `/v1/models` API on startup and registers all available models automatically
-- **Zero config** — API key from `auth.json`, `$SAIA_API_KEY` env var, or `/login saia`
+- **Dynamic discovery** — the provider is registered via OMP's runtime provider API (`pi.registerProvider()` with `fetchDynamicModels`); OMP queries the SAIA `/v1/models` endpoint through the same model-cache pipeline as built-in providers (24 h TTL, `omp models refresh` to force)
+- **Zero config** — API key from `$SAIA_API_KEY` (OMP loads `.env` files automatically) or a config-sourced key; no reload needed once the key is set — `omp models` re-runs discovery
 - **Skill included** — `/skill:saia-models` documents available models and usage
-- **OpenAI-compatible** — Uses standard `openai-completions` API
+- **OpenAI-compatible** — uses standard `openai-completions` API (`chat-ai.academiccloud.de/v1`)
 
 ## Installation
 
 ```bash
-# From git (recommended)
-pi install git:github.com/tobias-weiss-ai-xr/pi-saia-plugin
+# From a local checkout (recommended for development)
+omp plugin link /path/to/omp-saia-plugin
 
-# Or local
-pi install /path/to/pi-saia-plugin
+# From git
+omp plugin install github:USER/omp-saia-plugin
 ```
 
-Then reload or restart pi:
-
-```bash
-/reload
-```
+The plugin is enabled automatically on install. Restart omp if it was running.
 
 ## Available Models
 
-Models are **dynamically discovered** from the SAIA API on startup. The table below lists currently known models with context windows sourced from [official SAIA docs](https://docs.hpc.gwdg.de/services/ai-services/chat-ai/models/index.html).
+Models are **dynamically discovered** from the SAIA API. The table below lists currently known models with context windows sourced from [official SAIA docs](https://docs.hpc.gwdg.de/services/ai-services/chat-ai/models/index.html).
 
 | Model ID | Name | Context | Reasoning |
 |----------|------|---------|-----------|
-| `saia/glm-4.7` | GLM 4.7 | 200K | ✅ |
+| `saia/glm-4.7` | GLM 4.7 | 200K | ❌ |
 | `saia/qwen3.5-397b-a17b` | Qwen 3.5 397B | 256K | ✅ |
 | `saia/qwen3.5-122b-a10b` | Qwen 3.5 122B | 256K | ✅ |
-| `saia/devstral-2-123b-instruct-2512` | DevStral 2 123B | 256K | ✅ |
+| `saia/devstral-2-123b-instruct-2512` | DevStral 2 123B | 256K | ❌ |
 | `saia/openai-gpt-oss-120b` | GPT-OSS 120B | 128K | ✅ |
 | `saia/qwen3.6-27b` | Qwen 3.6 27B | 262K | ✅ |
 | `saia/qwen3.6-35b-a3b` | Qwen 3.6 35B | 262K | ✅ |
 | `saia/deepseek-v4-flash` | DeepSeek V4 Flash | 1M | ✅ |
 | `saia/mistral-medium-3.5-128b` | Mistral Medium 3.5 | 256K | ✅ |
 | `saia/gemma-4-31b-it` | Gemma 4 31B | 256K | ✅ |
-| `saia/qwen3-30b-a3b-instruct-2507` | Qwen 3 30B | 256K | ✅ |
-| `saia/medgemma-27b-it` | MedGemma 27B | 32K | ✅ |
+| `saia/qwen3-30b-a3b-instruct-2507` | Qwen 3 30B | 256K | ❌ |
+| `saia/medgemma-27b-it` | MedGemma 27B | 32K | ❌ |
 
-> The actual set may vary — run `pi --list-models | grep ^saia` to see what's currently available.
+> Reasoning status is verified against the live API (`reasoning_effort: "high"` probe, 2026-08-08); the ✅ set can change as SAIA updates model capabilities. The actual model set may vary — run `omp models | grep ^saia` to see what's currently available.
 
 ## Usage
 
 ```bash
 # List available models
-pi --list-models | grep ^saia
+omp models | grep ^saia
 
 # Switch to a model
 /model saia/glm-4.7
@@ -67,47 +60,68 @@ pi --list-models | grep ^saia
 # With thinking level
 /model saia/qwen3.5-397b-a17b:high
 
+# Force a refresh of the model list (bypass the 24 h cache)
+omp models refresh
+
 # Load the skill for documentation
 /skill:saia-models
 ```
 
 ## API Key
 
-The API key is resolved from (in order):
+The API key is resolved from `$SAIA_API_KEY` (OMP also loads `.env` files from the project, `~/.omp/agent/`, and `~/.omp/`):
 
-1. `auth.json` — `"saia": { "type": "api_key", "key": "..." }`
-2. `$SAIA_API_KEY` environment variable
-3. `/login saia` interactive prompt
+```bash
+export SAIA_API_KEY=your-key
+omp models | grep ^saia
+```
+
+Without a key the `saia` provider is registered but carries no models; set the variable and run `omp models` to trigger discovery — no reload needed.
 
 ## Package Structure
 
 ```
-pi-saia-plugin/
-├── package.json              # Pi package manifest
+omp-saia-plugin/
+├── package.json              # OMP plugin manifest (omp.extensions)
 ├── extensions/
-│   ├── index.ts              # Provider registration (async, dynamic discovery)
+│   ├── index.ts              # Provider registration (pi.registerProvider + fetchDynamicModels)
 │   ├── discovery.ts          # API client: fetchModels(), buildModelDefs()
 │   ├── config.ts             # ModelDef → ProviderModelConfig transformer
 │   ├── constants.ts          # Provider ID, base URL, context window table
 │   └── types.ts              # TypeScript interfaces for API responses
-└── skills/
-    └── saia-models.md        # Model documentation skill
+├── skills/
+│   └── saia-models/
+│       └── SKILL.md          # Model documentation skill
+└── test/
+    └── extensions.test.ts    # bun test for discovery/config logic
 ```
 
 ## Development
 
 ```bash
-git clone https://github.com/tobias-weiss-ai-xr/pi-saia-plugin.git
-cd pi-saia-plugin
-npm install
+git clone https://github.com/tobias-weiss-ai-xr/omp-saia-plugin
+cd omp-saia-plugin
+bun install
+bun check    # tsc --noEmit
+bun test
 ```
 
 Test locally:
 
 ```bash
-pi install /path/to/pi-saia-plugin
-pi --list-models | grep ^saia
+omp plugin link /path/to/omp-saia-plugin
+omp models | grep ^saia
 ```
+
+## Porting Notes (pi → OMP)
+
+| pi | OMP |
+|----|-----|
+| `pi.registerProvider(id, { models })` — one-shot fetch at startup | `pi.registerProvider(id, { fetchDynamicModels })` — OMP's runtime discovery pipeline (SQLite model cache, 24 h TTL, `omp models refresh`) |
+| `thinkingLevelMap` (pi thinking levels → `reasoning_effort`) | `thinking: { mode: "effort", efforts: [...] }` — OMP levels map 1:1 to vLLM values; `compat.supportsReasoningEffort: true` |
+| `compat.supportsThinkingTokenBudget` | not exposed by OMP's compat schema (dropped) |
+| `apiKey: "$SAIA_API_KEY"` (deferred env resolution) | resolved at registration; env is re-read inside the discovery callback so the key can appear later |
+| `pi install` / `/reload` | `omp plugin link` / `omp plugin install`; no reload needed for model changes |
 
 ## License
 

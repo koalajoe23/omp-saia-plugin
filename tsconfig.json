@@ -11,8 +11,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "types": ["node"]
+    "types": ["node", "bun"]
   },
-  "include": ["src/**/*", "extensions/**/*"],
+  "include": ["extensions/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist"]
 }

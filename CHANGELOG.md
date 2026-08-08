@@ -1,9 +1,25 @@
 # Changelog
 
-All notable changes to pi-saia-plugin will be documented in this file.
+All notable changes to omp-saia-plugin will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Fixed
+- Reasoning override set: added `gemma-4-31b-it` (verified against the live API, 2026-08-08)
+- README model table: corrected reasoning column — `glm-4.7`, `devstral-2-123b-instruct-2512`, `qwen3-30b-a3b-instruct-2507`, and `medgemma-27b-it` do not emit reasoning under `reasoning_effort` (medgemma's endpoint is currently 500ing, so it stays unverified)
+
+## [1.0.0] - 2026-08-08
+
+### Added
+- Port of pi-saia-plugin to OMP (`@oh-my-pi/pi-coding-agent` extension API)
+- `pi.registerProvider()` with `fetchDynamicModels` — OMP runtime discovery (24 h cache in `models.db`, `omp models refresh` to force)
+- `thinking: { mode: "effort" }` + `compat.supportsReasoningEffort` replacing pi's `thinkingLevelMap`
+- OMP skill layout (`skills/saia-models/SKILL.md`) and `omp.extensions` manifest
+- `bun test` coverage for discovery/config transforms
+- Removed pi-only machinery: shell config generators (`src/`), sandbox, Docker, pi installers, pi.json schema/example, pi CI workflows
 
 ## [Unreleased]
 

@@ -8,10 +8,12 @@ import type { SaiaModelResponse, ModelDef } from "./types.js";
  * return `reasoning` content in responses.
  *
  * Verified by testing each model with `reasoning_effort: "high"` and
- * checking for a non-null `reasoning` field in the response.
+ * checking for a non-null `reasoning` field in the response
+ * (re-verified 2026-08-08 against the live API).
  */
 const REASONING_OVERRIDES: ReadonlySet<string> = new Set([
   "deepseek-v4-flash",
+  "gemma-4-31b-it",
   "mistral-medium-3.5-128b",
   "openai-gpt-oss-120b",
   "qwen3.6-27b",
@@ -20,10 +22,9 @@ const REASONING_OVERRIDES: ReadonlySet<string> = new Set([
 
 /**
  * Fetch available models from the SAIA API.
- * Requires SAIA_API_KEY environment variable.
+ * Requires an API key (usually resolved from $SAIA_API_KEY by the caller).
  */
-export async function fetchModels(): Promise<SaiaModelResponse> {
-  const apiKey = process.env.SAIA_API_KEY;
+export async function fetchModels(apiKey: string): Promise<SaiaModelResponse> {
   if (!apiKey) {
     throw new Error("SAIA_API_KEY environment variable not set");
   }

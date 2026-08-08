@@ -1,12 +1,6 @@
 # Dependencies
 node_modules/
 
-# Generated files
-src/pi-saia.json
-src/pi-saia-*.json
-pi.json
-.pi.json
-
 # Cache
 .cache/saia/
 
@@ -28,4 +22,3 @@ npm-debug.log*
 .env
 .env.local
 .env.*.local
-pi-hessian-plugin/

@@ -1,29 +1,22 @@
 {
-  "name": "pi-saia-plugin",
+  "name": "omp-saia-plugin",
   "version": "1.0.0",
-  "description": "Pi package for SAIA (Academic Cloud Hessen) models — GLM, Qwen, DevStral, GPT-OSS. Auto-registers provider, models, and usage skill.",
-  "keywords": ["pi-package", "saia", "academic-cloud", "llm", "provider"],
+  "description": "OMP plugin for SAIA (Academic Cloud Hessen) models — GLM, Qwen, DevStral, GPT-OSS. Auto-registers the provider and discovers models at runtime.",
+  "keywords": ["omp-plugin", "saia", "academic-cloud", "llm", "provider"],
   "type": "module",
   "main": "extensions/index.ts",
   "scripts": {
-    "lint": "tsc --noEmit",
-    "tsc": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "bun test"
   },
-  "pi": {
-    "extensions": ["./extensions"],
-    "skills": ["./skills"]
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/tobias-weiss-ai-xr/pi-saia-plugin"
+  "omp": {
+    "extensions": ["./extensions"]
   },
   "author": "Tobias Weiss",
   "license": "MIT",
-  "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "*",
-    "typebox": "*"
-  },
   "devDependencies": {
+    "@oh-my-pi/pi-coding-agent": "^17.2.11",
+    "@types/bun": "^1.3.14",
     "@types/node": "^26.1.1",
     "typescript": "^7.0.2"
   }
