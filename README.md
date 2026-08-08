@@ -123,6 +123,10 @@ omp models | grep ^saia
 | `apiKey: "$SAIA_API_KEY"` (deferred env resolution) | resolved at registration; env is re-read inside the discovery callback so the key can appear later |
 | `pi install` / `/reload` | `omp plugin link` / `omp plugin install`; no reload needed for model changes |
 
+## Acknowledgements
+
+This plugin is based on [pi-saia-plugin](https://github.com/tobias-weiss-ai-xr/pi-saia-plugin) by [Tobias Weiss](https://github.com/tobias-weiss-ai-xr): the model discovery logic, context-window tables, reasoning verification data, and skill content are derived from that project, ported from the pi extension API to OMP's. Thanks to the original author and contributors.
+
 ## License
 
 MIT
