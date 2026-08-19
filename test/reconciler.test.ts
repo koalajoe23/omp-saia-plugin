@@ -118,3 +118,57 @@ describe("config parsing", () => {
     expect(parseConfig({ SAIA_RECONCILE_DISABLED: "false" }).disabled).toBe(false);
   });
 });
+
+import { probeReasoning, parseProbeStream } from "../extensions/reconciler.js";
+
+describe("reasoning probe", () => {
+  test("parseProbeStream detects reasoning delta", () => {
+    const chunks = [
+      'data: {"choices":[{"delta":{"role":"assistant","content":""}}]}',
+      'data: {"choices":[{"delta":{"reasoning":"We"}}]}',
+      'data: {"choices":[{"delta":{"content":"OK"}}]}',
+      "data: [DONE]",
+    ];
+    expect(parseProbeStream(chunks)).toBe(true);
+  });
+
+  test("parseProbeStream handles reasoning_content and reasoning_text fields", () => {
+    expect(parseProbeStream(['data: {"choices":[{"delta":{"reasoning_content":"x"}}]}'])).toBe(true);
+    expect(parseProbeStream(['data: {"choices":[{"delta":{"reasoning_text":"x"}}]}'])).toBe(true);
+  });
+
+  test("parseProbeStream returns false for text-only", () => {
+    const chunks = ['data: {"choices":[{"delta":{"content":"OK"}}]}', "data: [DONE]"];
+    expect(parseProbeStream(chunks)).toBe(false);
+  });
+
+  test("parseProbeStream returns null on error chunk", () => {
+    const chunks = ['data: {"error":{"message":"boom"}}'];
+    expect(parseProbeStream(chunks)).toBe(null);
+  });
+
+  test("parseProbeStream returns null on empty stream", () => {
+    expect(parseProbeStream([])).toBe(null);
+  });
+
+  test("probeReasoning sends reasoning_effort and maps stream", async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const fakeFetch = (async (url: any, init: any) => {
+      calls.push({ url, init });
+      return new Response('data: {"choices":[{"delta":{"reasoning":"x"}}]}\ndata: [DONE]');
+    }) as unknown as typeof fetch;
+    const result = await probeReasoning(fakeFetch, "https://chat-ai.academiccloud.de/v1", "key", "m-1", 1000);
+    expect(result).toBe(true);
+    const body = JSON.parse(String(calls[0].init.body));
+    expect(body.model).toBe("m-1");
+    expect(body.reasoning_effort).toBe("high");
+    expect(body.max_tokens).toBe(1);
+    expect(body.stream).toBe(true);
+  });
+
+  test("probeReasoning returns null on non-ok response", async () => {
+    const fakeFetch = (async () => new Response("nope", { status: 500 })) as unknown as typeof fetch;
+    const result = await probeReasoning(fakeFetch, "https://x/v1", "key", "m-1", 1000);
+    expect(result).toBe(null);
+  });
+});

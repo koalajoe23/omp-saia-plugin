@@ -40,6 +40,60 @@ function disabledFlag(raw: string | undefined): boolean {
   return v !== "0" && v !== "false" && v !== "no";
 }
 
+export function parseProbeStream(chunks: string[]): boolean | null {
+  let sawReasoning = false;
+  let sawContent = false;
+  for (const line of chunks) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("data:")) continue;
+    const payload = trimmed.slice(5).trim();
+    if (payload === "[DONE]") continue;
+    let parsed: {
+      error?: unknown;
+      choices?: Array<{ delta?: Record<string, unknown> }>;
+    };
+    try {
+      parsed = JSON.parse(payload);
+    } catch {
+      continue;
+    }
+    if (parsed.error) return null;
+    const delta = parsed.choices?.[0]?.delta;
+    if (!delta) continue;
+    if (delta.reasoning != null) sawReasoning = true;
+    if (delta.reasoning_content != null) sawReasoning = true;
+    if (delta.reasoning_text != null) sawReasoning = true;
+    if (delta.content != null && delta.content !== "") sawContent = true;
+  }
+  if (sawReasoning) return true;
+  if (sawContent) return false;
+  return null;
+}
+
+export async function probeReasoning(
+  fetchImpl: typeof fetch,
+  baseUrl: string,
+  apiKey: string,
+  modelId: string,
+  timeoutMs: number,
+): Promise<boolean | null> {
+  const res = await fetchImpl(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: modelId,
+      messages: [{ role: "user", content: "Say OK" }],
+      reasoning_effort: "high",
+      max_tokens: 1,
+      stream: true,
+    }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!res.ok) return null;
+  const text = await res.text();
+  return parseProbeStream(text.split("\n"));
+}
+
 export function parseConfig(env: Record<string, string | undefined>): ReconcilerConfig {
   return {
     startupDelayMs: positiveInt(env.SAIA_RECONCILE_STARTUP_DELAY_MS, DEFAULT_CONFIG.startupDelayMs),
