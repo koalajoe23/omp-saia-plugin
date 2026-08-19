@@ -290,7 +290,7 @@ describe("reconcile cycle logic", () => {
       updatedAt: now.toISOString(),
       models: { "unknown-1": { reasoning: true, contextWindow: 555_555 } },
     };
-    const scraped = { "u-2": 262_000 }; // normalized name for "U2"
+    const scraped = { u2: 262_000 }; // normalizeModelName("U2") === "u2"
     const merged = reconcileFields(store, list, scraped, now);
     expect(merged.models["a-1"].vision).toBe(true);
     expect(merged.models["a-1"].reasoning).toBe(true); // from API "thought"
