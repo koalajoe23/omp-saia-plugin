@@ -142,6 +142,9 @@ describe("extension factory", () => {
       registerProvider: mock((name: string, config: Record<string, unknown>) => {
         registrations.push({ name, config });
       }),
+      registerCommand: mock((name: string, config: Record<string, unknown>) => {
+        registrations.push({ name, config });
+      }),
     } as unknown as ExtensionAPI;
     return { pi, registrations };
   }
@@ -151,8 +154,8 @@ describe("extension factory", () => {
 
     extensionFactory(pi);
 
-    expect(registrations).toHaveLength(1);
-    const [registration] = registrations;
+    const registration = registrations.find((r) => r.name === "saia")!;
+    expect(registration).toBeDefined();
     expect(registration.name).toBe("saia");
     expect(registration.config.baseUrl).toBe("https://chat-ai.academiccloud.de/v1");
     expect(registration.config.api).toBe("openai-completions");
@@ -233,6 +236,14 @@ describe("extension factory", () => {
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  test("registers the saia-refresh slash command", () => {
+    const { pi, registrations } = fakePi();
+    extensionFactory(pi);
+    const cmd = registrations.find((r) => r.name === "saia-refresh");
+    expect(cmd).toBeDefined();
+    expect(typeof cmd!.config.handler).toBe("function");
   });
 });
 

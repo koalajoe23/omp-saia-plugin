@@ -24,12 +24,15 @@ export const REASONING_OVERRIDES: Record<string, true> = {
  * Fetch available models from the SAIA API.
  * Requires an API key (usually resolved from $SAIA_API_KEY by the caller).
  */
-export async function fetchModels(apiKey: string): Promise<SaiaModelResponse> {
+export async function fetchModels(
+  apiKey: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<SaiaModelResponse> {
   if (!apiKey) {
     throw new Error("SAIA_API_KEY environment variable not set");
   }
 
-  const res = await fetch(MODELS_ENDPOINT, {
+  const res = await fetchImpl(MODELS_ENDPOINT, {
     method: "POST",
     headers: {
       Accept: "application/json",

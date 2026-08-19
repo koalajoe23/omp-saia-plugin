@@ -1,7 +1,8 @@
 import { readFileSync, writeFileSync, renameSync, existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { baseModelId, REASONING_OVERRIDES } from "./discovery.js";
+import { BASE_URL } from "./constants.js";
+import { baseModelId, REASONING_OVERRIDES, fetchModels } from "./discovery.js";
 import type { ModelStore, StoredCapabilities, SaiaModelResponse } from "./types.js";
 
 export interface ReconcilerConfig {
@@ -235,6 +236,119 @@ export function reconcileFields(
     models[entry.id] = existing;
   }
   return { version: 1, updatedAt: now.toISOString(), contextScrapedAt: store.contextScrapedAt, models };
+}
+
+export interface ReconcileSummary {
+  modelsSeen: number;
+  probesRun: number;
+  probeFailures: number;
+  scraped: boolean;
+}
+
+export interface ReconcilerDeps {
+  config: ReconcilerConfig;
+  getApiKey: () => string | undefined;
+  fetchImpl?: typeof fetch;
+  setInterval?: typeof setInterval;
+  clearInterval?: typeof clearInterval;
+  setTimeout?: typeof setTimeout;
+  clearTimeout?: typeof clearTimeout;
+  logger: { warn: (msg: string, extra?: Record<string, unknown>) => void };
+}
+
+export function createReconciler(deps: ReconcilerDeps) {
+  const { config } = deps;
+  const fetchImpl = deps.fetchImpl ?? fetch;
+  const setIntervalFn = deps.setInterval ?? setInterval;
+  const clearIntervalFn = deps.clearInterval ?? clearInterval;
+  const setTimeoutFn = deps.setTimeout ?? setTimeout;
+  const clearTimeoutFn = deps.clearTimeout ?? clearTimeout;
+
+  let running: Promise<ReconcileSummary> | null = null;
+  let intervalId: ReturnType<typeof setInterval> | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  async function cycle(): Promise<ReconcileSummary> {
+    const apiKey = deps.getApiKey();
+    if (!apiKey) {
+      deps.logger.warn("[SAIA] No API key; skipping reconcile");
+      return { modelsSeen: 0, probesRun: 0, probeFailures: 0, scraped: false };
+    }
+    let list: SaiaModelResponse;
+    try {
+      list = await fetchModels(apiKey, fetchImpl);
+    } catch (error) {
+      deps.logger.warn("[SAIA] Reconcile: model list fetch failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return { modelsSeen: 0, probesRun: 0, probeFailures: 0, scraped: false };
+    }
+    const now = new Date();
+    let store = loadStore(config.storePath);
+
+    let scrapedContext: Record<string, number> | null = null;
+    let scraped = false;
+    const lastScrape = store.contextScrapedAt ? new Date(store.contextScrapedAt).getTime() : 0;
+    const scrapeDue = lastScrape === 0 || lastScrape + config.scrapeIntervalMs <= now.getTime();
+    if (scrapeDue) {
+      try {
+        scrapedContext = await scrapeContextWindows(fetchImpl, SCRAPE_URL, config.scrapeTimeoutMs);
+        if (scrapedContext !== null && Object.keys(scrapedContext).length > 0) {
+          store = { ...store, contextScrapedAt: now.toISOString() };
+          scraped = true;
+        }
+      } catch (error) {
+        deps.logger.warn("[SAIA] Reconcile: context scrape failed", { error: String(error) });
+      }
+    }
+
+    const probes = planProbes(store, list.data, config, now);
+    let probesRun = 0;
+    let probeFailures = 0;
+    for (const id of probes) {
+      const result = await probeReasoning(fetchImpl, BASE_URL, apiKey, id, config.probeTimeoutMs);
+      store = applyProbeResult(store, id, result, now);
+      probesRun++;
+      if (result === null) probeFailures++;
+    }
+
+    store = reconcileFields(store, list.data, scrapedContext, now);
+    store.updatedAt = now.toISOString();
+    saveStore(config.storePath, store);
+    return { modelsSeen: list.data.length, probesRun, probeFailures, scraped };
+  }
+
+  return {
+    start(): void {
+      if (config.disabled) return;
+      // Catch-up: run the deferred startup cycle only when the store is stale
+      // (older than staleAfterMs) or missing; a fresh store just waits for the
+      // interval. This is what makes SAIA_RECONCILE_STALE_AFTER_MS meaningful.
+      const store = loadStore(config.storePath);
+      const updatedAt = store.updatedAt ? new Date(store.updatedAt).getTime() : 0;
+      const fresh = updatedAt > 0 && Date.now() - updatedAt < config.staleAfterMs;
+      if (!fresh) {
+        timeoutId = setTimeoutFn(() => {
+          cycle().catch((error) => deps.logger.warn("[SAIA] Reconcile cycle error", { error: String(error) }));
+        }, config.startupDelayMs);
+      }
+      intervalId = setIntervalFn(() => {
+        cycle().catch((error) => deps.logger.warn("[SAIA] Reconcile cycle error", { error: String(error) }));
+      }, config.intervalMs);
+    },
+    reconcileNow(): Promise<ReconcileSummary> {
+      if (!running) {
+        running = cycle().finally(() => {
+          running = null;
+        });
+      }
+      return running;
+    },
+    stop(): void {
+      if (timeoutId !== null) clearTimeoutFn(timeoutId);
+      if (intervalId !== null) clearIntervalFn(intervalId);
+    },
+  };
 }
 
 export function parseConfig(env: Record<string, string | undefined>): ReconcilerConfig {

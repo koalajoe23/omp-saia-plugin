@@ -7,6 +7,12 @@
  * model-cache database (24 h TTL), refreshed at startup when uncached and on
  * `omp models` — no reload required when the model list changes.
  *
+ * Capability reconciliation: a background reconciler (`reconciler.ts`) keeps
+ * a persisted store of model capabilities (reasoning, vision, context
+ * windows) fresh — deferred at startup, then on a timer while omp runs.
+ * Discovery merges the store over the static tables, and `/saia-refresh`
+ * triggers a reconcile on demand.
+ *
  * API key: $SAIA_API_KEY environment variable (resolved at registration time
  * and stored as the provider's config-sourced credential; also re-read inside
  * the discovery callback so the key can appear after startup).
@@ -15,10 +21,11 @@
  * Verify:  omp models | grep ^saia
  */
 
-import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext } from "@oh-my-pi/pi-coding-agent";
 import { PROVIDER_ID, BASE_URL } from "./constants.js";
 import { fetchModels, buildModelDefs } from "./discovery.js";
 import { toModelConfig } from "./config.js";
+import { parseConfig, createReconciler, loadStore } from "./reconciler.js";
 
 export default function (pi: ExtensionAPI) {
   // Resolve the key now and register it as the config-sourced credential.
@@ -27,6 +34,12 @@ export default function (pi: ExtensionAPI) {
   // would send the literal string "SAIA_API_KEY" as the bearer token.
   const envKey = process.env.SAIA_API_KEY?.trim();
   const logger = pi.logger;
+  const config = parseConfig(process.env as Record<string, string | undefined>);
+  const reconciler = createReconciler({
+    config,
+    getApiKey: () => process.env.SAIA_API_KEY?.trim(),
+    logger,
+  });
 
   pi.registerProvider(PROVIDER_ID, {
     baseUrl: BASE_URL,
@@ -46,7 +59,8 @@ export default function (pi: ExtensionAPI) {
 
       try {
         const response = await fetchModels(apiKey);
-        const models = buildModelDefs(response).map(toModelConfig);
+        const store = loadStore(config.storePath);
+        const models = buildModelDefs(response, store).map(toModelConfig);
         logger.info(`[SAIA] Discovered ${models.length} models from API`);
         return models;
       } catch (error) {
@@ -57,4 +71,19 @@ export default function (pi: ExtensionAPI) {
       }
     },
   });
+
+  pi.registerCommand("saia-refresh", {
+    description:
+      "Reconcile SAIA model capabilities now (list, reasoning, vision, context windows)",
+    handler: async (_args: string, ctx: ExtensionCommandContext) => {
+      const summary = await reconciler.reconcileNow();
+      const msg =
+        `[SAIA] reconcile: ${summary.modelsSeen} models, ${summary.probesRun} probes, ` +
+        `${summary.probeFailures} failures, scraped=${summary.scraped}. ` +
+        `Run 'omp models refresh' to surface.`;
+      ctx.ui.notify(msg, "info");
+    },
+  });
+
+  reconciler.start();
 }

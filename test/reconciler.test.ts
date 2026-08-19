@@ -305,3 +305,123 @@ describe("reconcile cycle logic", () => {
     expect(baseModelId("qwen3.6-27b")).toBe("qwen3.6-27b");
   });
 });
+
+import { createReconciler } from "../extensions/reconciler.js";
+import type { ReconcileSummary } from "../extensions/reconciler.js";
+
+describe("reconciler lifecycle", () => {
+  test("reconcileNow runs one cycle with single-flight", async () => {
+    let modelsCalls = 0;
+    const fakeFetch = (async (url: any) => {
+      if (String(url).endsWith("/models")) {
+        modelsCalls++;
+        return new Response(JSON.stringify({ object: "list", data: [] }));
+      }
+      // scrape URL (first cycle: store empty -> scrape due)
+      return new Response(
+        "<html><table><tr><td>X</td><td>Some Model</td><td>yes</td><td>2026</td><td>1M</td><td>-</td><td>-</td><td>-</td></tr></table></html>",
+      );
+    }) as unknown as typeof fetch;
+    const dir = mkdtempSync(join(tmpdir(), "saia-singleflight-"));
+    const reconciler = createReconciler({
+      config: { ...DEFAULT_CONFIG, storePath: join(dir, "saia.json"), probesPerCycle: 1 },
+      getApiKey: () => "key",
+      fetchImpl: fakeFetch,
+      logger: { warn: () => {} },
+    });
+    const first = reconciler.reconcileNow();
+    const second = reconciler.reconcileNow();
+    const [a, b] = await Promise.all([first, second]);
+    expect(a).toEqual(b); // single-flight: same promise result
+    expect(modelsCalls).toBe(1); // only one /models fetch despite two calls
+    reconciler.stop();
+  });
+
+  test("reconcileNow persists the reconciled store", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "saia-reconcile-"));
+    try {
+      const storePath = join(dir, "saia.json");
+      const fakeFetch = (async (url: any) => {
+        if (String(url).endsWith("/models")) {
+          return new Response(
+            JSON.stringify({
+              object: "list",
+              data: [{ id: "m-1", name: "M 1", input: ["text"], output: ["text"], status: "ready" }],
+            }),
+          );
+        }
+        if (String(url).endsWith("/chat/completions")) {
+          return new Response('data: {"choices":[{"delta":{"content":"OK"}}]}\ndata: [DONE]');
+        }
+        return new Response("<html><table><tr><td>X</td><td>M 1</td><td>yes</td><td>2026</td><td>128K</td><td>-</td><td>-</td><td>-</td></tr></table></html>");
+      }) as unknown as typeof fetch;
+      const reconciler = createReconciler({
+        config: { ...DEFAULT_CONFIG, storePath, probesPerCycle: 5, probeTimeoutMs: 100 },
+        getApiKey: () => "key",
+        fetchImpl: fakeFetch,
+        logger: { warn: () => {} },
+      });
+      const summary = await reconciler.reconcileNow();
+      expect(summary.modelsSeen).toBe(1);
+      expect(summary.probesRun).toBe(1); // m-1 unknown -> probed
+      const store = loadStore(storePath);
+      expect(store.models["m-1"].reasoning).toBe(false); // probe got text-only stream
+      expect(store.models["m-1"].contextWindow).toBe(128_000); // scraped by name "M 1" -> m-1
+      expect(store.contextScrapedAt).toBeDefined();
+      reconciler.stop();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("start defers and schedules interval; fresh store skips deferred cycle", async () => {
+    const timeouts: Array<{ fn: () => void; ms: number }> = [];
+    const intervals: Array<{ fn: () => void; ms: number }> = [];
+    const fakeTimers = {
+      setTimeout: ((fn: () => void, ms: number) => {
+        timeouts.push({ fn, ms });
+        return 1;
+      }) as unknown as typeof setTimeout,
+      clearTimeout: (() => {}) as unknown as typeof clearTimeout,
+      setInterval: ((fn: () => void, ms: number) => {
+        intervals.push({ fn, ms });
+        return 2;
+      }) as unknown as typeof setInterval,
+      clearInterval: (() => {}) as unknown as typeof clearInterval,
+    };
+    // stale/missing store -> deferred cycle scheduled
+    const staleDir = mkdtempSync(join(tmpdir(), "saia-stale-"));
+    const stale = createReconciler({
+      config: { ...DEFAULT_CONFIG, storePath: join(staleDir, "saia.json") },
+      getApiKey: () => "key",
+      logger: { warn: () => {} },
+      ...fakeTimers,
+    });
+    stale.start();
+    expect(timeouts).toHaveLength(1);
+    rmSync(staleDir, { recursive: true, force: true });
+    expect(timeouts[0].ms).toBe(DEFAULT_CONFIG.startupDelayMs);
+    expect(intervals).toHaveLength(1);
+    expect(intervals[0].ms).toBe(DEFAULT_CONFIG.intervalMs);
+    stale.stop();
+
+    // fresh store (recent updatedAt) -> no deferred cycle
+    const freshDir = mkdtempSync(join(tmpdir(), "saia-fresh-"));
+    try {
+      const storePath = join(freshDir, "saia.json");
+      saveStore(storePath, { version: 1, updatedAt: new Date().toISOString(), models: {} });
+      const fresh = createReconciler({
+        config: { ...DEFAULT_CONFIG, storePath },
+        getApiKey: () => "key",
+        logger: { warn: () => {} },
+        ...fakeTimers,
+      });
+      fresh.start();
+      expect(timeouts).toHaveLength(1); // unchanged: stale case scheduled 1
+      expect(intervals).toHaveLength(2);
+      fresh.stop();
+    } finally {
+      rmSync(freshDir, { recursive: true, force: true });
+    }
+  });
+});
