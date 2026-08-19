@@ -235,3 +235,39 @@ describe("extension factory", () => {
     }
   });
 });
+
+test("store values override static tables", () => {
+  const store = {
+    version: 1 as const,
+    updatedAt: "2026-08-19T00:00:00.000Z",
+    models: {
+      "glm-4.7": { reasoning: false, contextWindow: 999_999 },
+      "deepseek-v4-flash-0731": { reasoning: true, contextWindow: 1_000_000 },
+    },
+  };
+  const response: SaiaModelResponse = {
+    object: "list",
+    data: [
+      { id: "glm-4.7", name: "GLM 4.7", input: ["text"], output: ["thought", "text"], status: "ready" },
+      { id: "deepseek-v4-flash-0731", name: "DeepSeek V4 Flash 0731", input: ["text"], output: ["text"], status: "ready" },
+    ],
+  };
+  const defs = buildModelDefs(response, store);
+  const glm = defs.find((d) => d.id === "glm-4.7")!;
+  expect(glm.reasoning).toBe(false); // store overrides API "thought"
+  expect(glm.contextWindow).toBe(999_999);
+  const ds = defs.find((d) => d.id === "deepseek-v4-flash-0731")!;
+  expect(ds.reasoning).toBe(true); // store overrides missing API signal
+  expect(ds.contextWindow).toBe(1_000_000);
+  expect(ds.vision).toBe(false); // vision stays API-derived
+});
+
+test("without store, behavior is unchanged", () => {
+  const response: SaiaModelResponse = {
+    object: "list",
+    data: [{ id: "unknown-model", name: "X", input: ["text"], output: ["text"], status: "ready" }],
+  };
+  const defs = buildModelDefs(response);
+  expect(defs[0].reasoning).toBe(false);
+  expect(defs[0].contextWindow).toBe(128_000);
+});

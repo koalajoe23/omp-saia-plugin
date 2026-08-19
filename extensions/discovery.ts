@@ -1,5 +1,5 @@
 import { MODELS_ENDPOINT, DEFAULT_CONTEXT_WINDOW, DEFAULT_MAX_TOKENS, CONTEXT_WINDOWS } from "./constants.js";
-import type { SaiaModelResponse, ModelDef } from "./types.js";
+import type { SaiaModelResponse, ModelDef, ModelStore } from "./types.js";
 
 /**
  * Models confirmed to support reasoning even though the SAIA API does not
@@ -79,16 +79,23 @@ function supportsReasoning(entry: SaiaModelResponse["data"][number]): boolean {
   return false;
 }
 
-/** Build internal ModelDef array from the raw API response. */
-export function buildModelDefs(response: SaiaModelResponse): ModelDef[] {
+/**
+ * Build internal ModelDef array from the raw API response.
+ * When a store is provided, its values override the static tables
+ * (reasoning, contextWindow, maxTokens); vision always comes from the API.
+ */
+export function buildModelDefs(response: SaiaModelResponse, store?: ModelStore): ModelDef[] {
   return response.data
     .filter((entry) => entry.status === "ready")
-    .map((entry) => ({
-      id: entry.id,
-      name: entry.name,
-      reasoning: supportsReasoning(entry),
-      vision: entry.input?.includes("image") ?? false,
-      contextWindow: resolveContextWindow(entry.id),
-      maxTokens: DEFAULT_MAX_TOKENS,
-    }));
+    .map((entry) => {
+      const stored = store?.models[entry.id];
+      return {
+        id: entry.id,
+        name: entry.name,
+        reasoning: stored?.reasoning ?? supportsReasoning(entry),
+        vision: entry.input?.includes("image") ?? false,
+        contextWindow: stored?.contextWindow ?? resolveContextWindow(entry.id),
+        maxTokens: stored?.maxTokens ?? DEFAULT_MAX_TOKENS,
+      };
+    });
 }
