@@ -81,3 +81,40 @@ describe("store I/O", () => {
     }
   });
 });
+
+import { parseConfig, DEFAULT_CONFIG } from "../extensions/reconciler.js";
+
+describe("config parsing", () => {
+  test("defaults when env is empty", () => {
+    const cfg = parseConfig({});
+    expect(cfg).toEqual(DEFAULT_CONFIG);
+  });
+
+  test("applies numeric overrides", () => {
+    const cfg = parseConfig({ SAIA_RECONCILE_INTERVAL_MS: "1000", SAIA_RECONCILE_PROBES_PER_CYCLE: "5" });
+    expect(cfg.intervalMs).toBe(1000);
+    expect(cfg.probesPerCycle).toBe(5);
+  });
+
+  test("invalid values fall back to defaults", () => {
+    const cfg = parseConfig({
+      SAIA_RECONCILE_INTERVAL_MS: "abc",
+      SAIA_RECONCILE_PROBE_TIMEOUT_MS: "-5",
+      SAIA_RECONCILE_PROBES_PER_CYCLE: "0",
+    });
+    expect(cfg.intervalMs).toBe(DEFAULT_CONFIG.intervalMs);
+    expect(cfg.probeTimeoutMs).toBe(DEFAULT_CONFIG.probeTimeoutMs);
+    expect(cfg.probesPerCycle).toBe(DEFAULT_CONFIG.probesPerCycle);
+  });
+
+  test("store path override and disabled flag", () => {
+    const cfg = parseConfig({ SAIA_RECONCILE_STORE_PATH: "/tmp/x.json", SAIA_RECONCILE_DISABLED: "1" });
+    expect(cfg.storePath).toBe("/tmp/x.json");
+    expect(cfg.disabled).toBe(true);
+  });
+
+  test("disabled flag treats false/0 as enabled", () => {
+    expect(parseConfig({ SAIA_RECONCILE_DISABLED: "0" }).disabled).toBe(false);
+    expect(parseConfig({ SAIA_RECONCILE_DISABLED: "false" }).disabled).toBe(false);
+  });
+});

@@ -1,6 +1,59 @@
 import { readFileSync, writeFileSync, renameSync, existsSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import type { ModelStore } from "./types.js";
+
+export interface ReconcilerConfig {
+  startupDelayMs: number;
+  intervalMs: number;
+  staleAfterMs: number;
+  probesPerCycle: number;
+  probeTimeoutMs: number;
+  reverifyMs: number;
+  scrapeIntervalMs: number;
+  scrapeTimeoutMs: number;
+  storePath: string;
+  disabled: boolean;
+}
+
+export const DEFAULT_CONFIG: ReconcilerConfig = {
+  startupDelayMs: 5_000,
+  intervalMs: 21_600_000,
+  staleAfterMs: 43_200_000,
+  probesPerCycle: 2,
+  probeTimeoutMs: 20_000,
+  reverifyMs: 604_800_000,
+  scrapeIntervalMs: 604_800_000,
+  scrapeTimeoutMs: 15_000,
+  storePath: join(homedir(), ".omp", "agent", "saia-models.json"),
+  disabled: false,
+};
+
+function positiveInt(raw: string | undefined, fallback: number): number {
+  const n = Number(raw);
+  return Number.isInteger(n) && n > 0 ? n : fallback;
+}
+
+function disabledFlag(raw: string | undefined): boolean {
+  if (raw === undefined || raw === "") return false;
+  const v = raw.trim().toLowerCase();
+  return v !== "0" && v !== "false" && v !== "no";
+}
+
+export function parseConfig(env: Record<string, string | undefined>): ReconcilerConfig {
+  return {
+    startupDelayMs: positiveInt(env.SAIA_RECONCILE_STARTUP_DELAY_MS, DEFAULT_CONFIG.startupDelayMs),
+    intervalMs: positiveInt(env.SAIA_RECONCILE_INTERVAL_MS, DEFAULT_CONFIG.intervalMs),
+    staleAfterMs: positiveInt(env.SAIA_RECONCILE_STALE_AFTER_MS, DEFAULT_CONFIG.staleAfterMs),
+    probesPerCycle: positiveInt(env.SAIA_RECONCILE_PROBES_PER_CYCLE, DEFAULT_CONFIG.probesPerCycle),
+    probeTimeoutMs: positiveInt(env.SAIA_RECONCILE_PROBE_TIMEOUT_MS, DEFAULT_CONFIG.probeTimeoutMs),
+    reverifyMs: positiveInt(env.SAIA_RECONCILE_REVERIFY_MS, DEFAULT_CONFIG.reverifyMs),
+    scrapeIntervalMs: positiveInt(env.SAIA_RECONCILE_SCRAPE_INTERVAL_MS, DEFAULT_CONFIG.scrapeIntervalMs),
+    scrapeTimeoutMs: positiveInt(env.SAIA_RECONCILE_SCRAPE_TIMEOUT_MS, DEFAULT_CONFIG.scrapeTimeoutMs),
+    storePath: env.SAIA_RECONCILE_STORE_PATH?.trim() || DEFAULT_CONFIG.storePath,
+    disabled: disabledFlag(env.SAIA_RECONCILE_DISABLED),
+  };
+}
 
 const EMPTY_UPDATED_AT = new Date(0).toISOString();
 
