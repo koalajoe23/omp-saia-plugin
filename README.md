@@ -73,6 +73,29 @@ omp models refresh
 /skill:saia-models
 ```
 
+## Automatic capability reconciliation
+
+The plugin keeps model capabilities (reasoning, vision, context windows) fresh in the background: a deferred cycle at startup (when the store is stale), then every 6 h while omp runs. Each cycle refreshes the model list, probes unknown models for reasoning (tiny ~2-token calls, ≤2 per cycle), re-scrapes SAIA's docs page weekly for context windows, and stores the result in `~/.omp/agent/saia-models.json`. omp picks the fresh data up at its next model discovery (`omp models` / `omp models refresh`).
+
+Trigger a reconcile manually: `/saia-refresh` — then `omp models refresh` to surface the result immediately.
+
+All timings are env-configurable (invalid values fall back to defaults):
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `SAIA_RECONCILE_STARTUP_DELAY_MS` | `5000` | defer reconcile after session start |
+| `SAIA_RECONCILE_INTERVAL_MS` | `21600000` | background cycle (6 h) |
+| `SAIA_RECONCILE_STALE_AFTER_MS` | `43200000` | catch-up at startup if store older |
+| `SAIA_RECONCILE_PROBES_PER_CYCLE` | `2` | probe budget per cycle |
+| `SAIA_RECONCILE_PROBE_TIMEOUT_MS` | `20000` | per-probe timeout |
+| `SAIA_RECONCILE_REVERIFY_MS` | `604800000` | per-model re-verify (7 d) |
+| `SAIA_RECONCILE_SCRAPE_INTERVAL_MS` | `604800000` | docs scrape cadence (7 d) |
+| `SAIA_RECONCILE_SCRAPE_TIMEOUT_MS` | `15000` | scrape fetch timeout |
+| `SAIA_RECONCILE_STORE_PATH` | `~/.omp/agent/saia-models.json` | store location |
+| `SAIA_RECONCILE_DISABLED` | unset | set to any truthy value to disable |
+
+Failures degrade silently to the last known state or the static tables; nothing blocks startup or discovery.
+
 ## API Key
 
 The API key is resolved from `$SAIA_API_KEY` (OMP also loads `.env` files from the project, `~/.omp/agent/`, and `~/.omp/`):

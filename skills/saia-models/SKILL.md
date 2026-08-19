@@ -48,6 +48,10 @@ All reasoning models automatically get:
 
 All models get `compat.supportsDeveloperRole: false` (vLLM rejects the `developer` role; OMP falls back to `system`).
 
+## Automatic updates
+
+Capabilities reconcile automatically in the background (startup + every 6 h) and are stored in `~/.omp/agent/saia-models.json`; env vars `SAIA_RECONCILE_*` tune timing and location. Run `/saia-refresh` to reconcile immediately, then `omp models refresh` to surface the result.
+
 ## Usage
 
 ```bash

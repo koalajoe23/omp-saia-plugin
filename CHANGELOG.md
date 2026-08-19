@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Automatic capability reconciliation: background cycle (startup + interval) keeps model list, reasoning, vision, and context windows fresh in a persisted store (`~/.omp/agent/saia-models.json`); env-configurable timing (`SAIA_RECONCILE_*`); manual `/saia-refresh` command
+
 ### Fixed
 - Reasoning override set: added `gemma-4-31b-it` (verified against the live API, 2026-08-08)
 - README model table: corrected reasoning column — `glm-4.7`, `devstral-2-123b-instruct-2512`, `qwen3-30b-a3b-instruct-2507`, and `medgemma-27b-it` do not emit reasoning under `reasoning_effort` (medgemma's endpoint is currently 500ing, so it stays unverified)
