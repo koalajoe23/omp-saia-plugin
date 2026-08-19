@@ -195,7 +195,7 @@ describe("docs scrape", () => {
     expect(map["deepseek-v4-flash-0731"]).toBe(1_000_000);
     expect(map["qwen-3-6-27b"]).toBe(262_000);
     expect(map["apertus-70b-instruct-2509"]).toBe(65_000);
-    expect(map["meta-llama-3-1-8b-instruct"]).toBe(128_000);
+    expect(map["llama-3-1-8b-instruct"]).toBe(128_000);
   });
 
   test("parseScrape returns empty on malformed html", () => {
