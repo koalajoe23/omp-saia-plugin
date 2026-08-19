@@ -172,3 +172,52 @@ describe("reasoning probe", () => {
     expect(result).toBe(null);
   });
 });
+
+import { parseScrape, scrapeContextWindows, matchScrapedContext, normalizeModelName } from "../extensions/reconciler.js";
+
+const DOCS_HTML = `<html><body><table>
+<tr><td>🇨🇳 DeepSeek</td><td>DeepSeek V4 Flash 0731</td><td>yes</td><td>Jul 2026</td><td>1M</td><td>Great overall performance</td><td>-</td><td>temp=1.0, top_p=1.0</td></tr>
+<tr><td>🇩🇪 Qwen</td><td>Qwen 3.6 27B</td><td>yes</td><td>Apr 2026</td><td>262K</td><td>Vision</td><td>-</td><td>default</td></tr>
+<tr><td>🇩🇪 Apertus</td><td>Apertus 70B Instruct 2509</td><td>yes</td><td>Sep 2025</td><td>65k</td><td>Open source</td><td>-</td><td>temp=0.8</td></tr>
+<tr><td>🇺🇸 Meta</td><td>Llama 3.1 8B Instruct</td><td>yes</td><td>Jul 2024</td><td>128k</td><td>General</td><td>-</td><td>default</td></tr>
+<tr><td>🇩🇪 X</td><td>broken-row</td><td>no</td></tr>
+</table></body></html>`;
+
+describe("docs scrape", () => {
+  test("normalizeModelName collapses case and separators", () => {
+    expect(normalizeModelName("DeepSeek V4 Flash 0731")).toBe("deepseek-v4-flash-0731");
+    expect(normalizeModelName("GLM-4.7")).toBe("glm-4-7");
+    expect(normalizeModelName("Qwen 3.6 27B")).toBe("qwen-3-6-27b");
+  });
+
+  test("parseScrape extracts contexts keyed by normalized name", () => {
+    const map = parseScrape(DOCS_HTML);
+    expect(map["deepseek-v4-flash-0731"]).toBe(1_000_000);
+    expect(map["qwen-3-6-27b"]).toBe(262_000);
+    expect(map["apertus-70b-instruct-2509"]).toBe(65_000);
+    expect(map["meta-llama-3-1-8b-instruct"]).toBe(128_000);
+  });
+
+  test("parseScrape returns empty on malformed html", () => {
+    expect(parseScrape("<html>no table")).toEqual({});
+  });
+
+  test("matchScrapedContext finds exact and containment matches", () => {
+    const map = { "gpt-oss-120b": 128_000, "glm-4-7": 200_000 };
+    expect(matchScrapedContext(map, "OpenAI GPT OSS 120B")).toBe(128_000);
+    expect(matchScrapedContext(map, "GLM-4.7")).toBe(200_000);
+    expect(matchScrapedContext(map, "DeepSeek V4 Flash 0731")).toBeUndefined();
+  });
+
+  test("scrapeContextWindows fetches and parses", async () => {
+    const fakeFetch = (async () => new Response(DOCS_HTML)) as unknown as typeof fetch;
+    const map = await scrapeContextWindows(fakeFetch, "https://docs.example/index.html", 1000);
+    expect(map?.["qwen-3-6-27b"]).toBe(262_000);
+  });
+
+  test("scrapeContextWindows returns null on http error", async () => {
+    const fakeFetch = (async () => new Response("nope", { status: 500 })) as unknown as typeof fetch;
+    const map = await scrapeContextWindows(fakeFetch, "https://docs.example/index.html", 1000);
+    expect(map).toBe(null);
+  });
+});

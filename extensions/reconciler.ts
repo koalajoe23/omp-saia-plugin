@@ -94,6 +94,74 @@ export async function probeReasoning(
   return parseProbeStream(text.split("\n"));
 }
 
+export const SCRAPE_URL =
+  "https://docs.hpc.gwdg.de/services/ai-services/chat-ai/models/index.html";
+
+export function normalizeModelName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function stripTags(s: string): string {
+  return s.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+}
+
+/** Parse a docs-page context cell: "1M" -> 1_000_000, "262K" -> 262_000, "4096" -> 4096. */
+function parseContext(raw: string): number | undefined {
+  const m = raw.replace(/,/g, "").match(/^([\d.]+)\s*([kKmM])?$/);
+  if (!m) return undefined;
+  const n = Number(m[1]);
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  const suffix = m[2]?.toLowerCase();
+  const mult = suffix === "k" ? 1_000 : suffix === "m" ? 1_000_000 : 1;
+  return Math.round(n * mult);
+}
+
+/**
+ * Parse the SAIA docs page into normalized-name -> context window.
+ * The page's model table (row cells: flag, display name, ..., context, ...) does
+ * not carry API model ids, so keys are normalized display names; the API's own
+ * `name` field matches the display names (verified 2026-08-19 against the live
+ * page and /v1/models for all 16 served models).
+ */
+export function parseScrape(html: string): Record<string, number> {
+  const result: Record<string, number> = {};
+  const rows = html.match(/<tr[^>]*>[\s\S]*?<\/tr>/g) ?? [];
+  for (const row of rows) {
+    const cells = row.match(/<td[^>]*>([\s\S]*?)<\/td>/g) ?? [];
+    if (cells.length < 5) continue;
+    const name = stripTags(cells[1]);
+    const ctx = parseContext(stripTags(cells[4]));
+    if (name && ctx !== undefined) result[normalizeModelName(name)] = ctx;
+  }
+  return result;
+}
+
+/** Match a model name against scraped normalized-name keys (exact, then containment). */
+export function matchScrapedContext(
+  scraped: Record<string, number>,
+  modelName: string,
+): number | undefined {
+  const key = normalizeModelName(modelName);
+  if (scraped[key] !== undefined) return scraped[key];
+  for (const [k, v] of Object.entries(scraped)) {
+    if (k.includes(key) || key.includes(k)) return v;
+  }
+  return undefined;
+}
+
+export async function scrapeContextWindows(
+  fetchImpl: typeof fetch,
+  url: string,
+  timeoutMs: number,
+): Promise<Record<string, number> | null> {
+  const res = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
+  if (!res.ok) return null;
+  return parseScrape(await res.text());
+}
+
 export function parseConfig(env: Record<string, string | undefined>): ReconcilerConfig {
   return {
     startupDelayMs: positiveInt(env.SAIA_RECONCILE_STARTUP_DELAY_MS, DEFAULT_CONFIG.startupDelayMs),
