@@ -11,14 +11,14 @@ import type { SaiaModelResponse, ModelDef, ModelStore } from "./types.js";
  * checking for a non-null `reasoning` field in the response
  * (re-verified 2026-08-08 against the live API).
  */
-const REASONING_OVERRIDES: ReadonlySet<string> = new Set([
-  "deepseek-v4-flash",
-  "gemma-4-31b-it",
-  "mistral-medium-3.5-128b",
-  "openai-gpt-oss-120b",
-  "qwen3.6-27b",
-  "qwen3.6-35b-a3b",
-]);
+export const REASONING_OVERRIDES: Record<string, true> = {
+  "deepseek-v4-flash": true,
+  "gemma-4-31b-it": true,
+  "mistral-medium-3.5-128b": true,
+  "openai-gpt-oss-120b": true,
+  "qwen3.6-27b": true,
+  "qwen3.6-35b-a3b": true,
+};
 
 /**
  * Fetch available models from the SAIA API.
@@ -51,7 +51,7 @@ export async function fetchModels(apiKey: string): Promise<SaiaModelResponse> {
  * -> "deepseek-v4-flash"). The SAIA API rotates date-stamped variants of the
  * same model, but the static capability tables are keyed on the base id.
  */
-function baseModelId(modelId: string): string {
+export function baseModelId(modelId: string): string {
   return modelId.replace(/-\d{4}$/, "");
 }
 
@@ -74,8 +74,8 @@ export function resolveContextWindow(modelId: string): number {
  */
 function supportsReasoning(entry: SaiaModelResponse["data"][number]): boolean {
   if (entry.output?.includes("thought")) return true;
-  if (REASONING_OVERRIDES.has(entry.id)) return true;
-  if (REASONING_OVERRIDES.has(baseModelId(entry.id))) return true;
+  if (REASONING_OVERRIDES[entry.id] === true) return true;
+  if (REASONING_OVERRIDES[baseModelId(entry.id)] === true) return true;
   return false;
 }
 

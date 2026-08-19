@@ -221,3 +221,87 @@ describe("docs scrape", () => {
     expect(map).toBe(null);
   });
 });
+
+import { planProbes, applyProbeResult, reconcileFields } from "../extensions/reconciler.js";
+import { baseModelId } from "../extensions/discovery.js";
+import type { SaiaModelResponse } from "../extensions/types.js";
+
+describe("reconcile cycle logic", () => {
+  const config = { ...DEFAULT_CONFIG, probesPerCycle: 2, reverifyMs: 604_800_000 };
+  const list = [
+    { id: "a-1", name: "A", input: ["text", "image"], output: ["thought", "text"], status: "ready" },
+    { id: "unknown-1", name: "U1", input: ["text"], output: ["text"], status: "ready" },
+    { id: "unknown-2", name: "U2", input: ["text"], output: ["text"], status: "ready" },
+    { id: "unknown-3", name: "U3", input: ["text"], output: ["text"], status: "ready" },
+  ] as SaiaModelResponse["data"];
+  const now = new Date("2026-08-19T00:00:00.000Z");
+
+  test("planProbes picks unknown models up to the budget, skips known and recent", () => {
+    const store: ModelStore = {
+      version: 1,
+      updatedAt: now.toISOString(),
+      models: { "unknown-1": { reasoning: true, probedAt: now.toISOString() } },
+    };
+    expect(planProbes(store, list, config, now)).toEqual(["unknown-2", "unknown-3"]);
+  });
+
+  test("planProbes skips authoritative and recently-probed models", () => {
+    const store: ModelStore = {
+      version: 1,
+      updatedAt: now.toISOString(),
+      models: {},
+    };
+    const probes = planProbes(store, list, config, now);
+    // a-1 advertises "thought" -> never probed
+    expect(probes).not.toContain("a-1");
+    expect(probes.length).toBe(config.probesPerCycle);
+  });
+
+  test("planProbes backoff: recent failure defers re-probe (no hammering)", () => {
+    const store: ModelStore = {
+      version: 1,
+      updatedAt: now.toISOString(),
+      models: { "unknown-1": { reasoning: true, probedAt: now.toISOString(), probeFailures: 3 } },
+    };
+    expect(planProbes(store, list, config, now)).not.toContain("unknown-1");
+    const old = new Date(now.getTime() - 2 * 604_800_000).toISOString();
+    const oldStore: ModelStore = {
+      version: 1,
+      updatedAt: now.toISOString(),
+      models: { "unknown-1": { reasoning: true, probedAt: old, probeFailures: 3 } },
+    };
+    expect(planProbes(oldStore, list, config, now)).toContain("unknown-1");
+  });
+
+  test("applyProbeResult records reasoning and failure backoff", () => {
+    let store: ModelStore = { version: 1, updatedAt: now.toISOString(), models: {} };
+    store = applyProbeResult(store, "m-1", true, now);
+    expect(store.models["m-1"].reasoning).toBe(true);
+    expect(store.models["m-1"].probeFailures).toBe(0);
+    store = applyProbeResult(store, "m-2", null, now);
+    expect(store.models["m-2"].reasoning).toBeUndefined();
+    expect(store.models["m-2"].probeFailures).toBe(1);
+    expect(store.models["m-2"].probedAt).toBe(now.toISOString());
+  });
+
+  test("reconcileFields applies API vision/reasoning and scraped context by name", () => {
+    const store: ModelStore = {
+      version: 1,
+      updatedAt: now.toISOString(),
+      models: { "unknown-1": { reasoning: true, contextWindow: 555_555 } },
+    };
+    const scraped = { "u-2": 262_000 }; // normalized name for "U2"
+    const merged = reconcileFields(store, list, scraped, now);
+    expect(merged.models["a-1"].vision).toBe(true);
+    expect(merged.models["a-1"].reasoning).toBe(true); // from API "thought"
+    expect(merged.models["unknown-1"].reasoning).toBe(true); // kept from store
+    expect(merged.models["unknown-1"].contextWindow).toBe(555_555); // no scraped match -> store kept
+    expect(merged.models["unknown-2"].contextWindow).toBe(262_000); // scraped fills by name match
+    expect(merged.updatedAt).toBe(now.toISOString());
+  });
+
+  test("baseModelId strips date stamp", () => {
+    expect(baseModelId("deepseek-v4-flash-0731")).toBe("deepseek-v4-flash");
+    expect(baseModelId("qwen3.6-27b")).toBe("qwen3.6-27b");
+  });
+});

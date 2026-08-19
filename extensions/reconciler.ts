@@ -1,7 +1,8 @@
 import { readFileSync, writeFileSync, renameSync, existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import type { ModelStore } from "./types.js";
+import { baseModelId, REASONING_OVERRIDES } from "./discovery.js";
+import type { ModelStore, StoredCapabilities, SaiaModelResponse } from "./types.js";
 
 export interface ReconcilerConfig {
   startupDelayMs: number;
@@ -160,6 +161,80 @@ export async function scrapeContextWindows(
   const res = await fetchImpl(url, { signal: AbortSignal.timeout(timeoutMs) });
   if (!res.ok) return null;
   return parseScrape(await res.text());
+}
+
+/**
+ * Choose which models to probe this cycle, bounded by probesPerCycle.
+ * Authoritative signals (API "thought" or override-set membership) never probe.
+ * Backoff: a recent probe (success OR failure) defers the next probe until
+ * reverifyMs elapses — applyProbeResult sets probedAt on failure too, so a
+ * failing model is not re-probed every cycle.
+ */
+export function planProbes(
+  store: ModelStore,
+  list: SaiaModelResponse["data"],
+  config: ReconcilerConfig,
+  now: Date,
+): string[] {
+  const probes: string[] = [];
+  for (const entry of list) {
+    if (probes.length >= config.probesPerCycle) break;
+    if (entry.output?.includes("thought")) continue;
+    if (REASONING_OVERRIDES[entry.id] === true) continue;
+    if (REASONING_OVERRIDES[baseModelId(entry.id)] === true) continue;
+    const probedAt = store.models[entry.id]?.probedAt
+      ? new Date(store.models[entry.id].probedAt!).getTime()
+      : 0;
+    const due = probedAt === 0 || probedAt + config.reverifyMs <= now.getTime();
+    if (due) probes.push(entry.id);
+  }
+  return probes;
+}
+
+export function applyProbeResult(
+  store: ModelStore,
+  id: string,
+  reasoning: boolean | null,
+  now: Date,
+): ModelStore {
+  const entry: StoredCapabilities = { ...(store.models[id] ?? {}) };
+  if (reasoning === null) {
+    entry.probedAt = now.toISOString();
+    entry.probeFailures = (entry.probeFailures ?? 0) + 1;
+  } else {
+    entry.reasoning = reasoning;
+    entry.probedAt = now.toISOString();
+    entry.probeFailures = 0;
+  }
+  return { ...store, models: { ...store.models, [id]: entry } };
+}
+
+/**
+ * Refresh per-model fields from authoritative API data plus fresh scrape
+ * results. Scrape keys are normalized display names; each API entry's `name`
+ * is matched against them (scrape wins over the store per design decision).
+ */
+export function reconcileFields(
+  store: ModelStore,
+  list: SaiaModelResponse["data"],
+  scrapedContext: Record<string, number> | null,
+  now: Date,
+): ModelStore {
+  const models: ModelStore["models"] = { ...store.models };
+  for (const entry of list) {
+    const existing: StoredCapabilities = { ...(models[entry.id] ?? {}) };
+    if (entry.input?.includes("image")) existing.vision = true;
+    else if (entry.input?.length) existing.vision = false;
+    if (entry.output?.includes("thought")) existing.reasoning = true;
+    else if (REASONING_OVERRIDES[entry.id] === true) existing.reasoning = true;
+    else if (REASONING_OVERRIDES[baseModelId(entry.id)] === true) existing.reasoning = true;
+    if (scrapedContext) {
+      const ctx = matchScrapedContext(scrapedContext, entry.name);
+      if (ctx !== undefined) existing.contextWindow = ctx;
+    }
+    models[entry.id] = existing;
+  }
+  return { version: 1, updatedAt: now.toISOString(), contextScrapedAt: store.contextScrapedAt, models };
 }
 
 export function parseConfig(env: Record<string, string | undefined>): ReconcilerConfig {
