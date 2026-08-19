@@ -44,7 +44,8 @@ describe("buildModelDefs", () => {
     expect(glm.reasoning).toBe(true);
     // deepseek-v4-flash and gemma-4-31b-it are in the override set:
     // reasoning even without "thought" in output (verified against the live API)
-    for (const id of ["deepseek-v4-flash", "gemma-4-31b-it"]) {
+    // Date-stamped variants (e.g. deepseek-v4-flash-0731) match via the base id.
+    for (const id of ["deepseek-v4-flash", "gemma-4-31b-it", "deepseek-v4-flash-0731"]) {
       const override = buildModelDefs({
         object: "list",
         data: [{ id, name: id, input: ["text"], output: ["text"], status: "ready" }],
@@ -63,6 +64,8 @@ describe("buildModelDefs", () => {
   test("resolves context windows with default fallback", () => {
     expect(resolveContextWindow("glm-4.7")).toBe(200_000);
     expect(resolveContextWindow("unknown-model")).toBe(128_000);
+    // date-stamped variant falls back to the base id's entry
+    expect(resolveContextWindow("deepseek-v4-flash-0731")).toBe(1_000_000);
   });
 });
 

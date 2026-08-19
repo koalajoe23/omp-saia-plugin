@@ -46,9 +46,22 @@ export async function fetchModels(apiKey: string): Promise<SaiaModelResponse> {
   return res.json() as Promise<SaiaModelResponse>;
 }
 
+/**
+ * Strip a trailing date-stamp variant suffix (e.g. "deepseek-v4-flash-0731"
+ * -> "deepseek-v4-flash"). The SAIA API rotates date-stamped variants of the
+ * same model, but the static capability tables are keyed on the base id.
+ */
+function baseModelId(modelId: string): string {
+  return modelId.replace(/-\d{4}$/, "");
+}
+
 /** Resolve context window for a model ID, falling back to the default. */
 export function resolveContextWindow(modelId: string): number {
-  return CONTEXT_WINDOWS[modelId] ?? DEFAULT_CONTEXT_WINDOW;
+  return (
+    CONTEXT_WINDOWS[modelId] ??
+    CONTEXT_WINDOWS[baseModelId(modelId)] ??
+    DEFAULT_CONTEXT_WINDOW
+  );
 }
 
 /**
@@ -62,6 +75,7 @@ export function resolveContextWindow(modelId: string): number {
 function supportsReasoning(entry: SaiaModelResponse["data"][number]): boolean {
   if (entry.output?.includes("thought")) return true;
   if (REASONING_OVERRIDES.has(entry.id)) return true;
+  if (REASONING_OVERRIDES.has(baseModelId(entry.id))) return true;
   return false;
 }
 

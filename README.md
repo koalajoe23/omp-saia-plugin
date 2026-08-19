@@ -33,6 +33,7 @@ Models are **dynamically discovered** from the SAIA API. The table below lists c
 
 | Model ID | Name | Context | Reasoning |
 |----------|------|---------|-----------|
+| `saia/apertus-70b-instruct-2509` | Apertus 70B | 65K | ❌ |
 | `saia/glm-4.7` | GLM 4.7 | 200K | ❌ |
 | `saia/qwen3.5-397b-a17b` | Qwen 3.5 397B | 256K | ✅ |
 | `saia/qwen3.5-122b-a10b` | Qwen 3.5 122B | 256K | ✅ |
@@ -40,13 +41,18 @@ Models are **dynamically discovered** from the SAIA API. The table below lists c
 | `saia/openai-gpt-oss-120b` | GPT-OSS 120B | 128K | ✅ |
 | `saia/qwen3.6-27b` | Qwen 3.6 27B | 262K | ✅ |
 | `saia/qwen3.6-35b-a3b` | Qwen 3.6 35B | 262K | ✅ |
-| `saia/deepseek-v4-flash` | DeepSeek V4 Flash | 1M | ✅ |
+| `saia/deepseek-v4-flash-0731` | DeepSeek V4 Flash 0731 | 1M | ✅ |
 | `saia/mistral-medium-3.5-128b` | Mistral Medium 3.5 | 256K | ✅ |
 | `saia/gemma-4-31b-it` | Gemma 4 31B | 256K | ✅ |
 | `saia/qwen3-30b-a3b-instruct-2507` | Qwen 3 30B | 256K | ❌ |
+| `saia/qwen3-coder-next` | Qwen3 Coder Next | 256K | ❌ |
+| `saia/qwen3-omni-30b-a3b-instruct` | Qwen3 Omni 30B | 256K | ❌ |
+| `saia/meta-llama-3.1-8b-instruct` | Llama 3.1 8B | 128K | ❌ |
 | `saia/medgemma-27b-it` | MedGemma 27B | 32K | ❌ |
 
 > Reasoning status is verified against the live API (`reasoning_effort: "high"` probe, 2026-08-08); the ✅ set can change as SAIA updates model capabilities. The actual model set may vary — run `omp models | grep ^saia` to see what's currently available.
+
+> **Date-stamped variants:** SAIA sometimes serves date-stamped variants of a model (e.g. `saia/deepseek-v4-flash-0731` alongside the base `deepseek-v4-flash`). Capability lookups strip a trailing `-NNNN` stamp, so variants inherit the base model's reasoning support and context window instead of falling back to defaults.
 
 ## Usage
 

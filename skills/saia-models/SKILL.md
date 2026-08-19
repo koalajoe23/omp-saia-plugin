@@ -38,6 +38,8 @@ Two detection methods are used (API metadata + direct testing):
 | `saia/qwen3.6-27b` | Qwen 3.6 27B |
 | `saia/qwen3.6-35b-a3b` | Qwen 3.6 35B |
 
+Date-stamped variants (e.g. `saia/deepseek-v4-flash-0731`) match the base id for capability lookups, so they inherit reasoning support and context window from the base model.
+
 All reasoning models automatically get:
 
 - `reasoning: true`
