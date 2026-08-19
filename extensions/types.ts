@@ -19,3 +19,20 @@ export interface ModelDef {
   contextWindow: number;
   maxTokens: number;
 }
+
+export interface StoredCapabilities {
+  reasoning?: boolean;
+  vision?: boolean;
+  contextWindow?: number;
+  maxTokens?: number;
+  probedAt?: string;
+  probeFailures?: number;
+  contextScrapedAt?: string;
+}
+
+export interface ModelStore {
+  version: 1;
+  updatedAt: string;
+  contextScrapedAt?: string;
+  models: Record<string, StoredCapabilities>;
+}
