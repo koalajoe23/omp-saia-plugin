@@ -7,17 +7,21 @@ import type { SaiaModelResponse, ModelDef, ModelStore } from "./types.js";
  * for certain vLLM-backed models that still accept `reasoning_effort` and
  * return `reasoning` content in responses.
  *
- * Verified by testing each model with `reasoning_effort: "high"` and
- * checking for a non-null `reasoning` field in the response
- * (re-verified 2026-08-08 against the live API).
+ * Verified by testing each model with `reasoning_effort` and checking for a
+ * non-null `reasoning` field in the response (re-verified 2026-09-10 against
+ * the live API). `glm-4.7` and `qwen3.8-27b` were added in that pass (both
+ * accept `reasoning_effort` without advertising "thought"); `qwen3.6-27b`
+ * was dropped — it no longer appears in the live model list (superseded by
+ * `qwen3.8-27b`).
  */
 export const REASONING_OVERRIDES: Record<string, true> = {
   "deepseek-v4-flash": true,
   "gemma-4-31b-it": true,
+  "glm-4.7": true,
   "mistral-medium-3.5-128b": true,
   "openai-gpt-oss-120b": true,
-  "qwen3.6-27b": true,
   "qwen3.6-35b-a3b": true,
+  "qwen3.8-27b": true,
 };
 
 /**
@@ -78,6 +82,8 @@ export function resolveContextWindow(modelId: string): number {
 function supportsReasoning(entry: SaiaModelResponse["data"][number]): boolean {
   if (entry.output?.includes("thought")) return true;
   if (REASONING_OVERRIDES[entry.id] === true) return true;
+  // Date-stamped variants (e.g. deepseek-v4-flash-0731) inherit capability
+  // from the base id the tables are keyed on.
   if (REASONING_OVERRIDES[baseModelId(entry.id)] === true) return true;
   return false;
 }

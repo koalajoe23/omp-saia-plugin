@@ -42,16 +42,34 @@ describe("buildModelDefs", () => {
     const defs = buildModelDefs(SAMPLE_RESPONSE);
     const glm = defs.find((d) => d.id === "glm-4.7")!;
     expect(glm.reasoning).toBe(true);
-    // deepseek-v4-flash and gemma-4-31b-it are in the override set:
-    // reasoning even without "thought" in output (verified against the live API)
-    // Date-stamped variants (e.g. deepseek-v4-flash-0731) match via the base id.
-    for (const id of ["deepseek-v4-flash", "gemma-4-31b-it", "deepseek-v4-flash-0731"]) {
+    // Override-set models are reasoning even without "thought" in output
+    // (verified against the live API, 2026-09-10).
+    for (const id of [
+      "deepseek-v4-flash",
+      "gemma-4-31b-it",
+      "glm-4.7",
+      "mistral-medium-3.5-128b",
+      "openai-gpt-oss-120b",
+      "qwen3.6-35b-a3b",
+      "qwen3.8-27b",
+    ]) {
       const override = buildModelDefs({
         object: "list",
         data: [{ id, name: id, input: ["text"], output: ["text"], status: "ready" }],
       })[0];
       expect(override.reasoning).toBe(true);
     }
+  });
+
+  test("matches date-stamped variant ids to their base for capability lookups", () => {
+    // The API serves deepseek-v4-flash-0731; the override + context tables are
+    // keyed on the base id deepseek-v4-flash.
+    const [def] = buildModelDefs({
+      object: "list",
+      data: [{ id: "deepseek-v4-flash-0731", name: "DeepSeek V4 Flash 0731", input: ["text"], output: ["text"], status: "ready" }],
+    });
+    expect(def.reasoning).toBe(true);
+    expect(def.contextWindow).toBe(1_000_000);
   });
 
   test("detects vision from input modalities", () => {
@@ -89,6 +107,31 @@ describe("toModelConfig", () => {
       supportsReasoningEffort: true,
     });
     expect(config.input).toEqual(["text"]);
+  });
+
+  test("restricts effort ladders for non-vLLM reasoning gateways", () => {
+    const gateways: Record<string, string[]> = {
+      "mistral-medium-3.5-128b": ["minimal", "high"],
+      "openai-gpt-oss-120b": ["low", "medium", "high"],
+      "qwen3.8-27b": ["low", "medium", "xhigh"],
+    };
+    for (const [id, efforts] of Object.entries(gateways)) {
+      const def = buildModelDefs({
+        object: "list",
+        data: [{ id, name: id, input: ["text"], output: ["text"], status: "ready" }],
+      })[0];
+      const config = toModelConfig(def);
+      expect([...(config.thinking?.efforts ?? [])] as unknown[]).toEqual(efforts);
+    }
+  });
+
+  test("maps mistral minimal effort to wire none", () => {
+    const def = buildModelDefs({
+      object: "list",
+      data: [{ id: "mistral-medium-3.5-128b", name: "Mistral", input: ["text"], output: ["text"], status: "ready" }],
+    })[0];
+    const config = toModelConfig(def);
+    expect(config.thinking?.effortMap).toMatchObject({ minimal: "none" });
   });
 
   test("maps non-reasoning vision models without thinking config", () => {
@@ -178,6 +221,10 @@ describe("extension factory", () => {
   test("discovery callback maps the API response into model configs", async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = stubFetch(SAMPLE_RESPONSE);
+    // Isolate from the real reconcile store: its entries override the static
+    // tables, so a stale user store would flip expectations on this machine.
+    const originalStorePath = process.env.SAIA_RECONCILE_STORE_PATH;
+    process.env.SAIA_RECONCILE_STORE_PATH = "/tmp/saia-test-store-absent.json";
     try {
       const { pi, registrations } = fakePi();
       extensionFactory(pi);
@@ -194,6 +241,8 @@ describe("extension factory", () => {
       expect(qwen.id).toBe("qwen3-30b-a3b-instruct-2507");
       expect(qwen.reasoning).toBe(false);
     } finally {
+      if (originalStorePath === undefined) delete process.env.SAIA_RECONCILE_STORE_PATH;
+      else process.env.SAIA_RECONCILE_STORE_PATH = originalStorePath;
       globalThis.fetch = originalFetch;
     }
   });

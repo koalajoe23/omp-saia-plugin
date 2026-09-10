@@ -11,9 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic capability reconciliation: background cycle (startup + interval) keeps model list, reasoning, vision, and context windows fresh in a persisted store (`~/.omp/agent/saia-models.json`); env-configurable timing (`SAIA_RECONCILE_*`); manual `/saia-refresh` command
 
 ### Fixed
-- Reasoning override set: added `gemma-4-31b-it` (verified against the live API, 2026-08-08)
-- README model table: corrected reasoning column — `glm-4.7`, `devstral-2-123b-instruct-2512`, `qwen3-30b-a3b-instruct-2507`, and `medgemma-27b-it` do not emit reasoning under `reasoning_effort` (medgemma's endpoint is currently 500ing, so it stays unverified)
-- Date-stamped model variants (e.g. `deepseek-v4-flash-0731`) now inherit reasoning support and context window from the base id: capability lookups strip a trailing `-NNNN` stamp (`baseModelId`), so variants no longer fall back to `reasoning: false` and the 128K default context window
+- Reasoning override + context-window lookups now match date-stamped variant ids to their base id: capability lookups strip a trailing `-NNNN` stamp (`baseModelId`), so variants (e.g. `deepseek-v4-flash-0731`) no longer fall back to `reasoning: false` and the 128K default context window
+- Reasoning overrides re-verified against the live API (2026-09-10): added `glm-4.7` and `qwen3.8-27b`; removed `qwen3.6-27b` (model retired from the SAIA list, superseded by `qwen3.8-27b`)
+- Per-model reasoning-effort ladders: `mistral-medium-3.5-128b` (only `none` via `minimal`, plus `high`), `openai-gpt-oss-120b` (`low`/`medium`/`high`), and `qwen3.8-27b` (`low`/`medium`/`xhigh`) advertise only the values their gateways accept — previously OMP could send unsupported levels and get 400s from the API
+
+### Changed
+- Model tables (README, skill): added `glm-5.3-flash` (1.25M context, no reasoning) and `qwen3.8-27b` (262K, reasoning); removed `qwen3.6-27b` and `medgemma-27b-it` (no longer in the SAIA list); `glm-4.7` flipped to reasoning ✅
 
 ## [1.0.0] - 2026-08-08
 

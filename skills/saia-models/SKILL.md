@@ -33,18 +33,31 @@ Two detection methods are used (API metadata + direct testing):
 |----------|------|
 | `saia/deepseek-v4-flash` | DeepSeek V4 Flash |
 | `saia/gemma-4-31b-it` | Gemma 4 31B |
+| `saia/glm-4.7` | GLM 4.7 |
 | `saia/mistral-medium-3.5-128b` | Mistral Medium 3.5 |
 | `saia/openai-gpt-oss-120b` | GPT-OSS 120B |
-| `saia/qwen3.6-27b` | Qwen 3.6 27B |
 | `saia/qwen3.6-35b-a3b` | Qwen 3.6 35B |
+| `saia/qwen3.8-27b` | Qwen 3.8 27B |
+
+Re-verified against the live API on 2026-09-10. `glm-4.7` and `qwen3.8-27b` were added in that pass (both accept `reasoning_effort` without advertising `"thought"`); `qwen3.6-27b` was removed (no longer in the SAIA list, superseded by `qwen3.8-27b`).
+
+Date-stamped variants (e.g. `saia/deepseek-v4-flash-0731`) match the base id for capability lookups, so they inherit reasoning support and context window from the base model.
 
 Date-stamped variants (e.g. `saia/deepseek-v4-flash-0731`) match the base id for capability lookups, so they inherit reasoning support and context window from the base model.
 
 All reasoning models automatically get:
 
 - `reasoning: true`
-- `thinking: { mode: "effort", efforts: [minimal, low, medium, high, xhigh, max] }` — OMP thinking levels map 1:1 to the vLLM `reasoning_effort` values the SAIA backend accepts
+- `thinking: { mode: "effort", efforts: [minimal, low, medium, high, xhigh, max] }` — OMP thinking levels map 1:1 to the vLLM `reasoning_effort` values most SAIA backends accept
 - `compat.supportsReasoningEffort: true` so `reasoning_effort` is actually sent
+
+Three models run gateways that accept only a subset of the effort ladder, so they advertise a restricted `efforts` list (and an `effortMap` where the wire value differs) — requesting an unlisted level is rejected by OMP before it reaches the API:
+
+| Model | Effective ladder | Note |
+|-------|------------------|------|
+| `mistral-medium-3.5-128b` | `minimal` (wire `none`), `high` | Mistral API only accepts `none`/`high` |
+| `openai-gpt-oss-120b` | `low`, `medium`, `high` | Harmony backend |
+| `qwen3.8-27b` | `low`, `medium`, `xhigh` | `xhigh` is the backend default |
 
 All models get `compat.supportsDeveloperRole: false` (vLLM rejects the `developer` role; OMP falls back to `system`).
 
