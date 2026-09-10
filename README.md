@@ -34,7 +34,7 @@ Models are **dynamically discovered** from the SAIA API. The table below lists c
 | Model ID | Name | Context | Reasoning |
 |----------|------|---------|-----------|
 | `saia/glm-4.7` | GLM 4.7 | 200K | ✅ |
-| `saia/glm-5.3-flash` | GLM 5.3 Flash | 1.25M | ❌ |
+| `saia/glm-5.3-flash` | GLM 5.3 Flash | 1.25M | ✅ |
 | `saia/qwen3.5-397b-a17b` | Qwen 3.5 397B | 256K | ✅ |
 | `saia/qwen3.5-122b-a10b` | Qwen 3.5 122B | 256K | ✅ |
 | `saia/qwen3.8-27b` | Qwen 3.8 27B | 262K | ✅ |

@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Per-model reasoning-effort ladders: `mistral-medium-3.5-128b` (only `none` via `minimal`, plus `high`), `openai-gpt-oss-120b` (`low`/`medium`/`high`), and `qwen3.8-27b` (`low`/`medium`/`xhigh`) advertise only the values their gateways accept — previously OMP could send unsupported levels and get 400s from the API
 
 ### Changed
-- Model tables (README, skill): added `glm-5.3-flash` (1.25M context, no reasoning) and `qwen3.8-27b` (262K, reasoning); removed `qwen3.6-27b` and `medgemma-27b-it` (no longer in the SAIA list); `glm-4.7` flipped to reasoning ✅
+- Model tables (README, skill): added `glm-5.3-flash` (1.25M context, reasoning — initially misclassified non-reasoning by a trivial-prompt probe; it only reasons when the prompt needs it) and `qwen3.8-27b` (262K, reasoning); removed `qwen3.6-27b` and `medgemma-27b-it` (no longer in the SAIA list); `glm-4.7` flipped to reasoning ✅
 
 ## [1.0.0] - 2026-08-08
 

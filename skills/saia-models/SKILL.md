@@ -34,12 +34,13 @@ Two detection methods are used (API metadata + direct testing):
 | `saia/deepseek-v4-flash` | DeepSeek V4 Flash |
 | `saia/gemma-4-31b-it` | Gemma 4 31B |
 | `saia/glm-4.7` | GLM 4.7 |
+| `saia/glm-5.3-flash` | GLM 5.3 Flash |
 | `saia/mistral-medium-3.5-128b` | Mistral Medium 3.5 |
 | `saia/openai-gpt-oss-120b` | GPT-OSS 120B |
 | `saia/qwen3.6-35b-a3b` | Qwen 3.6 35B |
 | `saia/qwen3.8-27b` | Qwen 3.8 27B |
 
-Re-verified against the live API on 2026-09-10. `glm-4.7` and `qwen3.8-27b` were added in that pass (both accept `reasoning_effort` without advertising `"thought"`); `qwen3.6-27b` was removed (no longer in the SAIA list, superseded by `qwen3.8-27b`).
+Re-verified against the live API on 2026-09-10. `glm-4.7`, `qwen3.8-27b`, and `glm-5.3-flash` were added in that pass (they accept `reasoning_effort` without advertising `"thought"` — glm-5.3-flash only emits reasoning when the prompt actually needs it); `qwen3.6-27b` was removed (no longer in the SAIA list, superseded by `qwen3.8-27b`).
 
 Date-stamped variants (e.g. `saia/deepseek-v4-flash-0731`) match the base id for capability lookups, so they inherit reasoning support and context window from the base model.
 

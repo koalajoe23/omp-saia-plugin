@@ -48,6 +48,7 @@ describe("buildModelDefs", () => {
       "deepseek-v4-flash",
       "gemma-4-31b-it",
       "glm-4.7",
+      "glm-5.3-flash",
       "mistral-medium-3.5-128b",
       "openai-gpt-oss-120b",
       "qwen3.6-35b-a3b",

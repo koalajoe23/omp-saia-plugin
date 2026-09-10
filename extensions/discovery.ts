@@ -13,11 +13,18 @@ import type { SaiaModelResponse, ModelDef, ModelStore } from "./types.js";
  * accept `reasoning_effort` without advertising "thought"); `qwen3.6-27b`
  * was dropped — it no longer appears in the live model list (superseded by
  * `qwen3.8-27b`).
+ *
+ * Probe-method note: a trivial prompt ("Reply with OK") makes glm-5.3-flash
+ * return no reasoning at all — it only reasons when the prompt needs it, so
+ * non-reasoning classifications MUST use a reasoning-eliciting prompt.
+ * glm-5.3-flash was initially misclassified that way and added 2026-09-10
+ * (reasoning field + non-zero reasoning_tokens on low..max, full ladder).
  */
 export const REASONING_OVERRIDES: Record<string, true> = {
   "deepseek-v4-flash": true,
   "gemma-4-31b-it": true,
   "glm-4.7": true,
+  "glm-5.3-flash": true,
   "mistral-medium-3.5-128b": true,
   "openai-gpt-oss-120b": true,
   "qwen3.6-35b-a3b": true,
