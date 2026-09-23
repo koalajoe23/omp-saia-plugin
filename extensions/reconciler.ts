@@ -245,28 +245,64 @@ export interface ReconcileSummary {
   scraped: boolean;
 }
 
+/**
+ * Timer surface the reconciler schedules its background work through.
+ *
+ * Structurally satisfied by OMP's `ExtensionContext`, so a `session_start`
+ * handler can pass its `ctx` directly. Those managed handles are `unref`'d,
+ * contain a throwing callback instead of letting it escape as a process-fatal
+ * `uncaughtException`, and are cleared on session teardown.
+ */
+export interface TimerHost {
+  setInterval(callback: () => void, ms: number): unknown;
+  setTimeout(callback: () => void, ms: number): unknown;
+  clearTimer(timer: unknown): void;
+}
+
+/**
+ * Fallback host for callers with no `ExtensionContext` in hand (tests, a
+ * `start()` outside a session).
+ *
+ * Handles are `unref`'d: a raw `setInterval` here would keep a short-lived CLI
+ * process alive for the full interval. `omp plugin install` loads and runs the
+ * extension factory to validate it and then exits by draining the event loop,
+ * so an armed ref'd interval hangs the install outright.
+ */
+export const globalTimerHost: TimerHost = {
+  setInterval(callback, ms) {
+    const timer = setInterval(callback, ms);
+    (timer as { unref?: () => void }).unref?.();
+    return timer;
+  },
+  setTimeout(callback, ms) {
+    const timer = setTimeout(callback, ms);
+    (timer as { unref?: () => void }).unref?.();
+    return timer;
+  },
+  clearTimer(timer) {
+    clearInterval(timer as Parameters<typeof clearInterval>[0]);
+    clearTimeout(timer as Parameters<typeof clearTimeout>[0]);
+  },
+};
+
 export interface ReconcilerDeps {
   config: ReconcilerConfig;
   getApiKey: () => string | undefined;
   fetchImpl?: typeof fetch;
-  setInterval?: typeof setInterval;
-  clearInterval?: typeof clearInterval;
-  setTimeout?: typeof setTimeout;
-  clearTimeout?: typeof clearTimeout;
+  /** Timer host used when `start()` is called without one. Defaults to {@link globalTimerHost}. */
+  timers?: TimerHost;
   logger: { warn: (msg: string, extra?: Record<string, unknown>) => void };
 }
 
 export function createReconciler(deps: ReconcilerDeps) {
   const { config } = deps;
   const fetchImpl = deps.fetchImpl ?? fetch;
-  const setIntervalFn = deps.setInterval ?? setInterval;
-  const clearIntervalFn = deps.clearInterval ?? clearInterval;
-  const setTimeoutFn = deps.setTimeout ?? setTimeout;
-  const clearTimeoutFn = deps.clearTimeout ?? clearTimeout;
+  const defaultTimers = deps.timers ?? globalTimerHost;
 
   let running: Promise<ReconcileSummary> | null = null;
-  let intervalId: ReturnType<typeof setInterval> | null = null;
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  let timers: TimerHost | null = null;
+  let intervalId: unknown = null;
+  let timeoutId: unknown = null;
 
   async function cycle(): Promise<ReconcileSummary> {
     const apiKey = deps.getApiKey();
@@ -319,8 +355,18 @@ export function createReconciler(deps: ReconcilerDeps) {
   }
 
   return {
-    start(): void {
+    /**
+     * Arm the background reconcile schedule. Idempotent.
+     *
+     * MUST NOT be called from the extension factory body: `omp plugin install`
+     * loads and runs that factory to validate the extension, in a CLI process
+     * that exits by draining the event loop. Call it from a `session_start`
+     * handler and pass that handler's `ctx` as the timer host.
+     */
+    start(timerHost: TimerHost = defaultTimers): void {
       if (config.disabled) return;
+      if (intervalId !== null || timeoutId !== null) return;
+      timers = timerHost;
       // Catch-up: run the deferred startup cycle only when the store is stale
       // (older than staleAfterMs) or missing; a fresh store just waits for the
       // interval. This is what makes SAIA_RECONCILE_STALE_AFTER_MS meaningful.
@@ -328,11 +374,12 @@ export function createReconciler(deps: ReconcilerDeps) {
       const updatedAt = store.updatedAt ? new Date(store.updatedAt).getTime() : 0;
       const fresh = updatedAt > 0 && Date.now() - updatedAt < config.staleAfterMs;
       if (!fresh) {
-        timeoutId = setTimeoutFn(() => {
+        timeoutId = timerHost.setTimeout(() => {
+          timeoutId = null;
           cycle().catch((error) => deps.logger.warn("[SAIA] Reconcile cycle error", { error: String(error) }));
         }, config.startupDelayMs);
       }
-      intervalId = setIntervalFn(() => {
+      intervalId = timerHost.setInterval(() => {
         cycle().catch((error) => deps.logger.warn("[SAIA] Reconcile cycle error", { error: String(error) }));
       }, config.intervalMs);
     },
@@ -344,9 +391,14 @@ export function createReconciler(deps: ReconcilerDeps) {
       }
       return running;
     },
+    /** Disarm the schedule and release both handles. Idempotent. */
     stop(): void {
-      if (timeoutId !== null) clearTimeoutFn(timeoutId);
-      if (intervalId !== null) clearIntervalFn(intervalId);
+      const host = timers ?? defaultTimers;
+      if (timeoutId !== null) host.clearTimer(timeoutId);
+      if (intervalId !== null) host.clearTimer(intervalId);
+      timeoutId = null;
+      intervalId = null;
+      timers = null;
     },
   };
 }

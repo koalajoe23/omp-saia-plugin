@@ -9,9 +9,11 @@
  *
  * Capability reconciliation: a background reconciler (`reconciler.ts`) keeps
  * a persisted store of model capabilities (reasoning, vision, context
- * windows) fresh — deferred at startup, then on a timer while omp runs.
- * Discovery merges the store over the static tables, and `/saia-refresh`
- * triggers a reconcile on demand.
+ * windows) fresh — deferred at startup, then on a timer while omp runs. Its
+ * schedule is armed on `session_start` (never in the factory body, which the
+ * plugin installer also runs) using OMP's managed timers, and disarmed on
+ * `session_shutdown`. Discovery merges the store over the static tables, and
+ * `/saia-refresh` triggers a reconcile on demand.
  *
  * API key: $SAIA_API_KEY environment variable (resolved at registration time
  * and stored as the provider's config-sourced credential; also re-read inside
@@ -85,5 +87,18 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  reconciler.start();
+  // Arm the background reconciler only once a session is actually running.
+  // Doing it in the factory body hangs `omp plugin install`: the installer
+  // loads and RUNS this factory to validate the extension (PluginManager
+  // .install -> loadExtensions -> factory), in a CLI process that exits by
+  // draining the event loop — an armed interval there keeps it open forever.
+  // `ctx` is OMP's managed timer host: unref'd handles, callback throws
+  // contained instead of escaping as a fatal uncaughtException, and automatic
+  // clearing on session teardown.
+  pi.on("session_start", (_event, ctx) => {
+    reconciler.start(ctx);
+  });
+  pi.on("session_shutdown", () => {
+    reconciler.stop();
+  });
 }

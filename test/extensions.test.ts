@@ -4,6 +4,7 @@ import extensionFactory from "../extensions/index.js";
 import { buildModelDefs, resolveContextWindow } from "../extensions/discovery.js";
 import { toModelConfig } from "../extensions/config.js";
 import type { SaiaModelResponse } from "../extensions/types.js";
+import { DEFAULT_CONFIG } from "../extensions/reconciler.js";
 
 const SAMPLE_RESPONSE: SaiaModelResponse = {
   object: "list",
@@ -173,9 +174,16 @@ describe("extension factory", () => {
     return Object.assign(stub, { preconnect: mock(() => {}) }) as typeof fetch;
   }
 
+  type FakeHandler = (event: unknown, ctx: unknown) => unknown;
+
   /** Minimal ExtensionAPI stand-in; only the surface the factory touches. */
-  function fakePi(): { pi: ExtensionAPI; registrations: Registration[] } {
+  function fakePi(): {
+    pi: ExtensionAPI;
+    registrations: Registration[];
+    handlers: Map<string, FakeHandler[]>;
+  } {
     const registrations: Registration[] = [];
+    const handlers = new Map<string, FakeHandler[]>();
     const pi = {
       logger: {
         info: mock(() => {}),
@@ -183,6 +191,9 @@ describe("extension factory", () => {
         error: mock(() => {}),
         debug: mock(() => {}),
       },
+      on: mock((event: string, handler: FakeHandler) => {
+        handlers.set(event, [...(handlers.get(event) ?? []), handler]);
+      }),
       registerProvider: mock((name: string, config: Record<string, unknown>) => {
         registrations.push({ name, config });
       }),
@@ -190,7 +201,7 @@ describe("extension factory", () => {
         registrations.push({ name, config });
       }),
     } as unknown as ExtensionAPI;
-    return { pi, registrations };
+    return { pi, registrations, handlers };
   }
 
   test("registers the saia provider with dynamic discovery", () => {
@@ -294,6 +305,79 @@ describe("extension factory", () => {
     const cmd = registrations.find((r) => r.name === "saia-refresh");
     expect(cmd).toBeDefined();
     expect(typeof cmd!.config.handler).toBe("function");
+  });
+
+  /**
+   * Regression: `omp plugin install` validates a plugin by loading and RUNNING
+   * this factory in a CLI process that exits by draining the event loop. A
+   * ref'd timer armed here (the reconciler's 6 h interval) held that process
+   * open forever and hung the install. The factory must only subscribe; the
+   * schedule is armed later, on `session_start`.
+   */
+  test("factory arms no timers, so a plugin-install process can still exit", () => {
+    const realSetInterval = globalThis.setInterval;
+    const realSetTimeout = globalThis.setTimeout;
+    let armed = 0;
+    globalThis.setInterval = ((...args: unknown[]) => {
+      armed++;
+      return (realSetInterval as (...a: unknown[]) => unknown)(...args);
+    }) as unknown as typeof setInterval;
+    globalThis.setTimeout = ((...args: unknown[]) => {
+      armed++;
+      return (realSetTimeout as (...a: unknown[]) => unknown)(...args);
+    }) as unknown as typeof setTimeout;
+    try {
+      const { pi, handlers } = fakePi();
+      extensionFactory(pi);
+      expect(armed).toBe(0);
+      expect(handlers.get("session_start")).toHaveLength(1);
+      expect(handlers.get("session_shutdown")).toHaveLength(1);
+    } finally {
+      globalThis.setInterval = realSetInterval;
+      globalThis.setTimeout = realSetTimeout;
+    }
+  });
+
+  test("session_start arms the schedule on ctx's managed timers; shutdown clears both", () => {
+    const originalStorePath = process.env.SAIA_RECONCILE_STORE_PATH;
+    // Missing store => stale => both the deferred catch-up and the interval arm.
+    process.env.SAIA_RECONCILE_STORE_PATH = "/tmp/saia-test-store-absent.json";
+    try {
+      const { pi, handlers } = fakePi();
+      extensionFactory(pi);
+
+      const intervals: number[] = [];
+      const timeouts: number[] = [];
+      const cleared: unknown[] = [];
+      // Shaped like OMP's ExtensionContext managed-timer surface.
+      const ctx = {
+        setInterval: (_fn: () => void, ms: number) => {
+          intervals.push(ms);
+          return "interval-handle";
+        },
+        setTimeout: (_fn: () => void, ms: number) => {
+          timeouts.push(ms);
+          return "timeout-handle";
+        },
+        clearTimer: (timer: unknown) => {
+          cleared.push(timer);
+        },
+      };
+
+      for (const handler of handlers.get("session_start")!) handler(undefined, ctx);
+      expect(timeouts).toEqual([DEFAULT_CONFIG.startupDelayMs]);
+      expect(intervals).toEqual([DEFAULT_CONFIG.intervalMs]);
+
+      // Idempotent: a second session_start must not double-arm.
+      for (const handler of handlers.get("session_start")!) handler(undefined, ctx);
+      expect(intervals).toHaveLength(1);
+
+      for (const handler of handlers.get("session_shutdown")!) handler(undefined, ctx);
+      expect(cleared).toEqual(["timeout-handle", "interval-handle"]);
+    } finally {
+      if (originalStorePath === undefined) delete process.env.SAIA_RECONCILE_STORE_PATH;
+      else process.env.SAIA_RECONCILE_STORE_PATH = originalStorePath;
+    }
   });
 });
 

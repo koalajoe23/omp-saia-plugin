@@ -75,7 +75,7 @@ omp models refresh
 
 ## Automatic capability reconciliation
 
-The plugin keeps model capabilities (reasoning, vision, context windows) fresh in the background: a deferred cycle at startup (when the store is stale), then every 6 h while omp runs. Each cycle refreshes the model list, probes unknown models for reasoning (tiny ~2-token calls, ≤2 per cycle), re-scrapes SAIA's docs page weekly for context windows, and stores the result in `~/.omp/agent/saia-models.json`. omp picks the fresh data up at its next model discovery (`omp models` / `omp models refresh`).
+The plugin keeps model capabilities (reasoning, vision, context windows) fresh in the background: a deferred cycle at startup (when the store is stale), then every 6 h while omp runs. The schedule is armed on `session_start` and disarmed on `session_shutdown`, using OMP's managed timers — so it runs only inside a live session and never keeps a one-shot CLI invocation (`omp plugin install`, `omp models`) alive. Each cycle refreshes the model list, probes unknown models for reasoning (tiny ~2-token calls, ≤2 per cycle), re-scrapes SAIA's docs page weekly for context windows, and stores the result in `~/.omp/agent/saia-models.json`. omp picks the fresh data up at its next model discovery (`omp models` / `omp models refresh`).
 
 Trigger a reconcile manually: `/saia-refresh` — then `omp models refresh` to surface the result immediately.
 

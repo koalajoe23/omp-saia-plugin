@@ -306,8 +306,8 @@ describe("reconcile cycle logic", () => {
   });
 });
 
-import { createReconciler } from "../extensions/reconciler.js";
-import type { ReconcileSummary } from "../extensions/reconciler.js";
+import { createReconciler, globalTimerHost } from "../extensions/reconciler.js";
+import type { ReconcileSummary, TimerHost } from "../extensions/reconciler.js";
 
 describe("reconciler lifecycle", () => {
   test("reconcileNow runs one cycle with single-flight", async () => {
@@ -377,17 +377,16 @@ describe("reconciler lifecycle", () => {
   test("start defers and schedules interval; fresh store skips deferred cycle", async () => {
     const timeouts: Array<{ fn: () => void; ms: number }> = [];
     const intervals: Array<{ fn: () => void; ms: number }> = [];
-    const fakeTimers = {
-      setTimeout: ((fn: () => void, ms: number) => {
+    const fakeTimers: TimerHost = {
+      setTimeout: (fn: () => void, ms: number) => {
         timeouts.push({ fn, ms });
         return 1;
-      }) as unknown as typeof setTimeout,
-      clearTimeout: (() => {}) as unknown as typeof clearTimeout,
-      setInterval: ((fn: () => void, ms: number) => {
+      },
+      setInterval: (fn: () => void, ms: number) => {
         intervals.push({ fn, ms });
         return 2;
-      }) as unknown as typeof setInterval,
-      clearInterval: (() => {}) as unknown as typeof clearInterval,
+      },
+      clearTimer: () => {},
     };
     // stale/missing store -> deferred cycle scheduled
     const staleDir = mkdtempSync(join(tmpdir(), "saia-stale-"));
@@ -395,7 +394,7 @@ describe("reconciler lifecycle", () => {
       config: { ...DEFAULT_CONFIG, storePath: join(staleDir, "saia.json") },
       getApiKey: () => "key",
       logger: { warn: () => {} },
-      ...fakeTimers,
+      timers: fakeTimers,
     });
     stale.start();
     expect(timeouts).toHaveLength(1);
@@ -414,7 +413,7 @@ describe("reconciler lifecycle", () => {
         config: { ...DEFAULT_CONFIG, storePath },
         getApiKey: () => "key",
         logger: { warn: () => {} },
-        ...fakeTimers,
+        timers: fakeTimers,
       });
       fresh.start();
       expect(timeouts).toHaveLength(1); // unchanged: stale case scheduled 1
@@ -422,6 +421,66 @@ describe("reconciler lifecycle", () => {
       fresh.stop();
     } finally {
       rmSync(freshDir, { recursive: true, force: true });
+    }
+  });
+
+  test("start is idempotent and stop releases both handles", () => {
+    const armed: unknown[] = [];
+    const cleared: unknown[] = [];
+    const timers: TimerHost = {
+      setTimeout: () => {
+        armed.push("t");
+        return "t";
+      },
+      setInterval: () => {
+        armed.push("i");
+        return "i";
+      },
+      clearTimer: (timer) => {
+        cleared.push(timer);
+      },
+    };
+    const dir = mkdtempSync(join(tmpdir(), "saia-idempotent-"));
+    try {
+      const reconciler = createReconciler({
+        config: { ...DEFAULT_CONFIG, storePath: join(dir, "saia.json") },
+        getApiKey: () => "key",
+        logger: { warn: () => {} },
+        timers,
+      });
+      reconciler.start();
+      reconciler.start(); // second call must not double-arm
+      expect(armed).toEqual(["t", "i"]);
+      reconciler.stop();
+      expect(cleared).toEqual(["t", "i"]);
+      reconciler.stop(); // idempotent: nothing left to clear
+      expect(cleared).toEqual(["t", "i"]);
+      // Disarmed, so start() may arm again on a later session.
+      reconciler.start();
+      expect(armed).toEqual(["t", "i", "t", "i"]);
+      reconciler.stop();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  /**
+   * Regression guard for the install hang: the fallback host must unref, so an
+   * armed interval can never hold a short-lived CLI process open.
+   */
+  test("globalTimerHost unrefs its handles", () => {
+    const interval = globalTimerHost.setInterval(() => {}, 3_600_000) as {
+      hasRef?: () => boolean;
+    };
+    const timeout = globalTimerHost.setTimeout(() => {}, 3_600_000) as {
+      hasRef?: () => boolean;
+    };
+    try {
+      expect(interval.hasRef?.()).toBe(false);
+      expect(timeout.hasRef?.()).toBe(false);
+    } finally {
+      globalTimerHost.clearTimer(interval);
+      globalTimerHost.clearTimer(timeout);
     }
   });
 });
