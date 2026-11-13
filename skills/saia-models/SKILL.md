@@ -42,6 +42,8 @@ Two detection methods are used (API metadata + direct testing):
 
 Re-verified against the live API on 2026-09-10. `glm-4.7`, `qwen3.8-27b`, and `glm-5.3-flash` were added in that pass (they accept `reasoning_effort` without advertising `"thought"` — glm-5.3-flash only emits reasoning when the prompt actually needs it); `qwen3.6-27b` was removed (no longer in the SAIA list, superseded by `qwen3.8-27b`).
 
+`saia/deepseek-v4.1-flash` (served as `deepseek-v4.1-flash-1017`) was probed on 2026-11-13: it advertises `"thought"` in `output` and `"image"` in `input`, and the endpoint rejects >1_048_576 input tokens, so it is a 1M-context, vision-capable reasoning model (the first vision deepseek variant).
+
 Date-stamped variants (e.g. `saia/deepseek-v4-flash-0731`) match the base id for capability lookups, so they inherit reasoning support and context window from the base model.
 
 Date-stamped variants (e.g. `saia/deepseek-v4-flash-0731`) match the base id for capability lookups, so they inherit reasoning support and context window from the base model.

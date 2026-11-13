@@ -42,6 +42,7 @@ Models are **dynamically discovered** from the SAIA API. The table below lists c
 | `saia/openai-gpt-oss-120b` | GPT-OSS 120B | 128K | ✅ |
 | `saia/qwen3.6-35b-a3b` | Qwen 3.6 35B | 262K | ✅ |
 | `saia/deepseek-v4-flash-0731` | DeepSeek V4 Flash 0731 | 1M | ✅ |
+| `saia/deepseek-v4.1-flash-1017` | DeepSeek V4.1 Flash 1017 | 1M | ✅ |
 | `saia/mistral-medium-3.5-128b` | Mistral Medium 3.5 | 256K | ✅ |
 | `saia/gemma-4-31b-it` | Gemma 4 31B | 256K | ✅ |
 | `saia/qwen3-30b-a3b-instruct-2507` | Qwen 3 30B | 256K | ❌ |
@@ -50,7 +51,7 @@ Models are **dynamically discovered** from the SAIA API. The table below lists c
 | `saia/apertus-70b-instruct-2509` | Apertus 70B | 64K | ❌ |
 | `saia/meta-llama-3.1-8b-instruct` | Llama 3.1 8B | 128K | ❌ |
 
-> Reasoning status is verified against the live API with `reasoning_effort` probes (2026-09-10); the ✅ set can change as SAIA updates model capabilities. Date-stamped variants (e.g. `saia/deepseek-v4-flash-0731`) inherit capability and context from their base id. The actual model set may vary — run `omp models | grep ^saia` to see what's currently available. Most reasoning models expose the full `minimal…max` effort ladder; `mistral-medium-3.5-128b` (only `none`/`high`), `openai-gpt-oss-120b` (`low`/`medium`/`high`), and `qwen3.8-27b` (`low`/`medium`/`xhigh`) are restricted to their backend's accepted values.
+> Reasoning status is verified against the live API with `reasoning_effort` probes (2026-09-10); the ✅ set can change as SAIA updates model capabilities. Date-stamped variants (e.g. `saia/deepseek-v4-flash-0731`) inherit capability and context from their base id. The actual model set may vary — run `omp models | grep ^saia` to see what's currently available. Most reasoning models expose the full `minimal…max` effort ladder; `mistral-medium-3.5-128b` (only `none`/`high`), `openai-gpt-oss-120b` (`low`/`medium`/`high`), and `qwen3.8-27b` (`low`/`medium`/`xhigh`) are restricted to their backend's accepted values. `deepseek-v4.1-flash-1017` is the first deepseek variant with vision input (`image` in the API `input` array) alongside its 1M context window (probed 2026-11-13).
 
 > **Date-stamped variants:** SAIA sometimes serves date-stamped variants of a model (e.g. `saia/deepseek-v4-flash-0731` alongside the base `deepseek-v4-flash`). Capability lookups strip a trailing `-NNNN` stamp, so variants inherit the base model's reasoning support and context window instead of falling back to defaults.
 

@@ -11,11 +11,15 @@ export const DEFAULT_MAX_TOKENS = 32_768;
  * Reconciled against the live API 2026-09-10: `qwen3.6-27b` superseded by
  * `qwen3.8-27b`, `medgemma-27b-it` removed, `glm-5.3-flash` added.
  * `glm-5.3-flash` is not yet in the docs; it accepts ≥1M-token prompts on
- * the live endpoint (verified 2026-09-10).
+ * the live endpoint (verified 2026-09-10). `deepseek-v4.1-flash` probed
+ * 2026-11-13: the endpoint rejects >1_048_576 input tokens ("maximum context
+ * length is 1048576 tokens"), so it's a 1M model. Also vision-capable
+ * (API input includes "image"), unlike `deepseek-v4-flash`.
  */
 export const CONTEXT_WINDOWS: Record<string, number> = {
   "apertus-70b-instruct-2509": 65_536,
   "deepseek-v4-flash": 1_000_000,
+  "deepseek-v4.1-flash": 1_048_576,
   "devstral-2-123b-instruct-2512": 256_000,
   "gemma-4-31b-it": 256_000,
   "glm-4.7": 200_000,

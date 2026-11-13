@@ -74,6 +74,25 @@ describe("buildModelDefs", () => {
     expect(def.contextWindow).toBe(1_000_000);
   });
 
+  test("builds deepseek-v4.1-flash-1017 with 1M context, reasoning, and vision", () => {
+    // V4.1 serves no docs entry or static override base prior to 2026-11-13,
+    // so the probe result (1_048_576) lives in CONTEXT_WINDOWS keyed on the
+    // base id. Reasoning/vision come from the API metadata.
+    const [def] = buildModelDefs({
+      object: "list",
+      data: [{
+        id: "deepseek-v4.1-flash-1017",
+        name: "DeepSeek V4.1 Flash 1017",
+        input: ["text", "image"],
+        output: ["text", "thought"],
+        status: "ready",
+      }],
+    });
+    expect(def.contextWindow).toBe(1_048_576);
+    expect(def.reasoning).toBe(true);
+    expect(def.vision).toBe(true);
+  });
+
   test("detects vision from input modalities", () => {
     const defs = buildModelDefs(SAMPLE_RESPONSE);
     const qwen = defs.find((d) => d.id === "qwen3-30b-a3b-instruct-2507")!;
@@ -86,6 +105,7 @@ describe("buildModelDefs", () => {
     expect(resolveContextWindow("unknown-model")).toBe(128_000);
     // date-stamped variant falls back to the base id's entry
     expect(resolveContextWindow("deepseek-v4-flash-0731")).toBe(1_000_000);
+    expect(resolveContextWindow("deepseek-v4.1-flash-1017")).toBe(1_048_576);
   });
 });
 
